@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor de Irradiancia — Streger S.A.</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  min-height:100vh;
+  color:#fff;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+/* ── BACKGROUND ─────────────────────────── */
+.bg{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 140% 80% at 50% -10%, #b8dff5 0%, #72bce8 25%, #3a9dd4 45%, #1a78b8 65%, #0d5a96 100%);
+}
+/* Atmospheric haze layers */
+.bg::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 200% 60% at 50% 0%,rgba(255,255,255,0.35) 0%,transparent 55%),
+    radial-gradient(ellipse 100% 40% at 50% 100%,rgba(10,40,80,0.4) 0%,transparent 60%);
+}
+/* Clouds — pure CSS, no ugly orbs */
+.clouds{position:absolute;inset:0;overflow:hidden;}
+.cloud{
+  position:absolute;
+  background:rgba(255,255,255,0.18);
+  border-radius:100px;
+  filter:blur(18px);
+}
+.c1{width:380px;height:60px;top:8%;left:-5%;animation:drift 35s linear infinite;}
+.c2{width:260px;height:44px;top:14%;left:30%;animation:drift 50s linear infinite 8s;}
+.c3{width:320px;height:52px;top:22%;right:-8%;animation:drift2 42s linear infinite 3s;}
+.c4{width:180px;height:36px;top:30%;left:15%;animation:drift 60s linear infinite 15s;}
+.c5{width:440px;height:64px;top:38%;right:5%;animation:drift2 55s linear infinite 20s;}
+@keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(calc(100vw + 200px))}}
+@keyframes drift2{from{transform:translateX(calc(100vw + 200px))}to{transform:translateX(-120px)}}
+
+/* Horizon glow */
+.horizon{
+  position:absolute;bottom:0;left:0;right:0;height:35%;
+  background:linear-gradient(0deg,rgba(8,35,72,0.5) 0%,transparent 100%);
+}
+
+/* ── APP ─────────────────────────────────── */
+.app{
+  position:relative;z-index:1;
+  max-width:960px;margin:0 auto;
+  padding:0 16px 80px;
+}
+
+/* ── PAGE TITLE ─────────────────────────── */
+.page-top{padding:40px 0 22px;text-align:center;}
+.page-city{font-size:36px;font-weight:300;letter-spacing:-0.5px;color:#fff;}
+.page-sub{font-size:14px;color:rgba(255,255,255,0.7);margin-top:3px;}
+
+/* ── GLASS CARD ─────────────────────────── */
+.card{
+  background:rgba(255,255,255,0.18);
+  backdrop-filter:blur(32px) saturate(1.5);
+  -webkit-backdrop-filter:blur(32px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.30);
+  border-radius:20px;overflow:hidden;
+}
+.mt{margin-top:12px;}
+
+.card-label{
+  font-size:10.5px;font-weight:600;letter-spacing:0.9px;
+  text-transform:uppercase;color:rgba(255,255,255,0.58);
+  padding:14px 18px 0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-label-right{
+  font-size:10px;font-weight:400;text-transform:none;
+  letter-spacing:0;color:rgba(255,255,255,0.42);
+}
+
+/* ── STATUS ─────────────────────────────── */
+
+
+/* ── KPI ROW ─────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.kpi{
+  background:rgba(255,255,255,0.17);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border:1px solid rgba(255,255,255,0.28);
+  border-radius:20px;padding:16px 14px 14px;
+}
+.kpi-l{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.56);margin-bottom:7px;}
+.kpi-v{font-size:28px;font-weight:300;color:#fff;line-height:1;letter-spacing:-0.5px;}
+.kpi-u{font-size:12px;font-weight:400;color:rgba(255,255,255,0.65);margin-left:2px;}
+
+/* ── INPUTS ─────────────────────────────── */
+.inputs-body{padding:12px 18px 16px;}
+.ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(144px,1fr));gap:12px;}
+.fg label{display:block;font-size:10px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:5px;}
+.fg input,.fg select{
+  width:100%;background:rgba(255,255,255,0.13);
+  border:1px solid rgba(255,255,255,0.25);border-radius:12px;
+  color:#fff;font-family:inherit;font-size:14px;font-weight:500;
+  padding:9px 11px;outline:none;
+  transition:background .15s,border-color .15s;
+  -webkit-appearance:none;appearance:none;
+}
+.fg input:focus,.fg select:focus{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.52);}
+.fg input::placeholder{color:rgba(255,255,255,0.36);}
+option{background:#1a78b8;color:#fff;}
+.slider-wrap{display:flex;align-items:center;gap:8px;}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,0.2);cursor:pointer;}
+.sv{font-size:12px;font-weight:600;color:#fff;min-width:36px;text-align:right;}
+.sep{height:1px;background:rgba(255,255,255,0.13);margin:14px 0;}
+
+/* ── PANEL GRID ─────────────────────────── */
+.panel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 18px 8px;}
+.pcard{
+  background:rgba(255,255,255,0.11);
+  border:1.5px solid rgba(255,255,255,0.20);
+  border-radius:14px;padding:10px 8px 9px;
+  cursor:pointer;text-align:center;transition:all .15s;
+}
+.pcard:hover{background:rgba(255,255,255,0.20);}
+.pcard.sel{background:rgba(255,255,255,0.28);border-color:rgba(255,255,255,0.68);}
+.pcard-brand{font-size:9px;font-weight:600;letter-spacing:0.5px;color:rgba(255,255,255,0.55);text-transform:uppercase;margin-bottom:3px;}
+.pcard-wp{font-size:16px;font-weight:600;color:#fff;line-height:1.2;}
+.pcard-eff{font-size:10px;color:rgba(255,255,255,0.68);margin-top:2px;}
+
+/* Custom panel */
+.add-btn{
+  margin:0 18px 12px;width:calc(100% - 36px);
+  padding:9px 14px;text-align:left;
+  background:rgba(255,255,255,0.09);
+  border:1.5px dashed rgba(255,255,255,0.28);
+  border-radius:13px;color:rgba(255,255,255,0.68);
+  font-family:inherit;font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;
+}
+.add-btn:hover{background:rgba(255,255,255,0.18);color:#fff;}
+.cpf{display:none;margin:0 18px 14px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.20);border-radius:14px;padding:14px;}
+.cpf .cg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}
+.cpf .cg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.cpf label{display:block;font-size:10px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:rgba(255,255,255,0.52);margin-bottom:5px;}
+.cpf input{width:100%;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.22);border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:500;padding:8px 10px;outline:none;}
+.cpf input:focus{border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.20);}
+.cpf-save{padding:9px 18px;background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.40);border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.cpf-save:hover{background:rgba(255,255,255,0.34);}
+
+.run-btn{
+  display:block;width:calc(100% - 36px);margin:2px 18px 16px;
+  padding:13px;background:rgba(255,255,255,0.22);
+  border:1.5px solid rgba(255,255,255,0.48);
+  border-radius:14px;color:#fff;
+  font-family:inherit;font-size:15px;font-weight:600;
+  cursor:pointer;letter-spacing:0.2px;transition:all .2s;
+}
+.run-btn:hover{background:rgba(255,255,255,0.34);}
+.run-btn:active{transform:scale(0.98);}
+.run-btn:disabled{opacity:0.55;cursor:not-allowed;}
+
+/* ── MATRIX ─────────────────────────────── */
+.matrix-body{padding:12px 18px 14px;}
+.mx-scroll{overflow-x:auto;}
+table.mx{border-collapse:collapse;width:100%;}
+table.mx th{font-size:9.5px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:rgba(255,255,255,0.52);padding:5px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.10);}
+table.mx .hl{font-size:9px;font-weight:500;color:rgba(255,255,255,0.46);padding:3px 9px;text-align:right;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap;background:rgba(0,0,0,0.06);position:sticky;left:0;}
+table.mx td{width:47px;height:27px;text-align:center;font-size:8.5px;font-weight:600;border:1px solid rgba(0,0,0,0.05);cursor:default;transition:filter .1s;font-variant-numeric:tabular-nums;}
+table.mx td:hover{filter:brightness(1.35) saturate(1.2);}
+.leg{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:10px;color:rgba(255,255,255,0.46);}
+.leg-bar{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#030e1c,#003570,#005fa8,#009060,#d8b800,#f04400,#f00500);}
+.fnote{font-size:10px;color:rgba(255,255,255,0.38);padding:0 18px 14px;line-height:1.9;}
+.chart-tabs{display:flex;gap:4px;}
+.ctab{font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.20);background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.55);cursor:pointer;transition:all .15s;font-family:inherit;}
+.ctab:hover{background:rgba(255,255,255,0.18);color:rgba(255,255,255,0.85);}
+.ctab.sel{background:rgba(255,255,255,0.26);border-color:rgba(255,255,255,0.55);color:#fff;}
+
+/* ── CHARTS ─────────────────────────────── */
+.chart-body{padding:12px 18px 14px;}
+canvas{display:block;width:100%;}
+.cleg{display:flex;gap:18px;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.58);flex-wrap:wrap;}
+.cl{display:flex;align-items:center;gap:5px;}
+.cldot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+/* Month buttons */
+.mrow{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 14px;}
+.mb{font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.20);background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.62);cursor:pointer;transition:all .15s;}
+.mb:hover{background:rgba(255,255,255,0.18);}
+.mb.sel{background:rgba(255,255,255,0.26);border-color:rgba(255,255,255,0.62);color:#fff;}
+
+/* ── TWO COL ─────────────────────────────── */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+
+/* ── CENGEL ─────────────────────────────── */
+.cengel-body{padding:16px 18px 18px;}
+.formula{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15.5px;color:#fff;margin-bottom:5px;line-height:1.6;}
+.formula sub{font-size:10px;}
+.formula-note{font-size:11px;color:rgba(255,255,255,0.52);margin-bottom:16px;font-style:normal;font-family:inherit;}
+.ctable{width:100%;border-collapse:collapse;}
+.ctable thead tr{border-bottom:1px solid rgba(255,255,255,0.14);}
+.ctable th{font-size:10px;font-weight:600;letter-spacing:0.7px;text-transform:uppercase;color:rgba(255,255,255,0.48);padding:5px 8px;text-align:left;}
+.ctable td{font-size:13px;padding:8px 8px;border-bottom:1px solid rgba(255,255,255,0.07);color:#fff;}
+.ctable td:first-child{color:rgba(255,255,255,0.7);font-weight:500;}
+.tc{color:#ffd060;}.ef{color:#7dff9e;}.ls{color:#ff9070;}
+
+/* ── SPECS ───────────────────────────────── */
+.spec-body{padding:14px 18px 16px;}
+.spec-name{font-size:18px;font-weight:600;color:#fff;margin-bottom:2px;}
+.spec-brand{font-size:11px;color:rgba(255,255,255,0.52);margin-bottom:14px;}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.09);font-size:13px;}
+.srow:last-child{border-bottom:none;}
+.sk{color:rgba(255,255,255,0.58);}
+.sv2{color:#fff;font-weight:600;}
+.sv2.g{color:#7dff9e;}.sv2.w{color:#ffd060;}.sv2.r{color:#ff9070;}
+
+/* ── LOADING / PLACEHOLDER ───────────────── */
+.ph{text-align:center;padding:40px 20px;color:rgba(255,255,255,0.45);font-size:13px;}
+.spin{width:20px;height:20px;border:2px solid rgba(255,255,255,0.15);border-top-color:#fff;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 12px;}
+@keyframes s{to{transform:rotate(360deg)}}
+
+/* ── TOOLTIP ─────────────────────────────── */
+#tip{position:fixed;pointer-events:none;z-index:999;background:rgba(0,15,40,0.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:7px 13px;font-size:12px;font-weight:500;color:#fff;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
+
+@media(max-width:700px){
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .panel-grid{grid-template-columns:1fr 1fr;}
+  .two{grid-template-columns:1fr;}
+  .ig{grid-template-columns:1fr 1fr;}
+}
+
+.qstat{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:14px;padding:14px 14px 12px;}
+.qstat-v{font-size:22px;font-weight:300;color:#fff;line-height:1;letter-spacing:-0.5px;}
+.qstat-l{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.52);margin-top:5px;}
+.fg-sel{width:100%;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.25);border-radius:12px;color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:9px 11px;outline:none;-webkit-appearance:none;appearance:none;}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="clouds">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="cloud c4"></div>
+    <div class="cloud c5"></div>
+  </div>
+  <div class="horizon"></div>
+</div>
+
+<div class="app">
+
+  <div class="page-top">
+    <div class="page-city">Motor de Irradiancia y Modelo de Generación</div>
+    <div class="page-sub">Consolapa, Veracruz · Streger S.A. · F2004B</div>
+  </div>
+
+
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-l">GHI Promedio</div><div class="kpi-v"><span id="k-ghi">—</span><span class="kpi-u">W/m²</span></div></div>
+    <div class="kpi"><div class="kpi-l">Generación Anual</div><div class="kpi-v"><span id="k-gen">—</span><span class="kpi-u">MWh</span></div></div>
+    <div class="kpi"><div class="kpi-l">Eficiencia Real</div><div class="kpi-v"><span id="k-eff">—</span><span class="kpi-u">%</span></div></div>
+    <div class="kpi"><div class="kpi-l">Mejor Mes</div><div class="kpi-v"><span id="k-hs">—</span><span class="kpi-u">kWh</span></div></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="card">
+    <div class="card-label">
+      Configuración del Sistema
+      <div class="chart-tabs" id="mode-tabs">
+        <button class="ctab sel" id="tab-ahorro" onclick="setMode('ahorro')">Ahorro Convencional</button>
+        <button class="ctab" id="tab-critico" onclick="setMode('critico')" style="border-color:rgba(255,144,112,0.3); color:#ff9070;">Respaldo Crítico</button>
+      </div>
+    </div>
+    <div class="inputs-body">
+      <div class="ig">
+        <div class="fg" style="grid-column:1/-1">
+          <label>Ubicación</label>
+          <select id="preset" onchange="applyPreset()">
+            <option value="consolapa">Consolapa, Veracruz — Streger S.A.</option>
+            <option value="cdmx">Ciudad de México</option>
+            <option value="monterrey">Monterrey, Nuevo León</option>
+          </select>
+        </div>
+        <div class="fg"><label>Latitud (°)</label><input type="number" id="lat" value="19.35" step="0.01"></div>
+        <div class="fg"><label>Longitud (°)</label><input type="number" id="lon" value="-96.92" step="0.01"></div>
+        <div class="fg"><label>Altitud (m)</label><input type="number" id="alt" value="1200" step="1"></div>
+        
+        <div class="fg"><label>Temp. Ambiente (°C)</label><input type="number" id="temp" value="24" step="1"></div>
+        <div class="fg" id="fg-npan"><label>Núm. Paneles</label><input type="number" id="npan" value="120" min="1"></div>
+        <div class="fg"><label>Degradación (%)</label><input type="number" id="deg" value="5" step="0.5"></div>
+      </div>
+
+      <div id="view-critico" style="display:none; margin: 10px 0 15px; background:rgba(0,0,0,0.15); padding:18px; border-radius:12px; border:1px solid rgba(255,144,112,0.3);">
+        <div style="font-size:12px; color:#ff9070; margin-bottom:4px; font-weight:600; text-transform:uppercase;">Sistemas Críticos — Operación 24/7</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.42); margin-bottom:16px; line-height:1.65;">Activa o desactiva los sistemas que deben mantenerse operando durante un apagón. Haz clic en cada tarjeta para incluirlos o excluirlos del cálculo de respaldo.</div>
+
+        <!-- ── HVAC ── -->
+        <div id="crit-hvac" style="background:rgba(90,210,255,0.07); border:1.5px solid rgba(90,210,255,0.3); border-radius:12px; padding:14px; transition:all .2s; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:11px;">
+            <div style="cursor:pointer; user-select:none;" onclick="toggleSystem('hvac')">
+              <div style="font-size:13px; font-weight:600; color:#5ad2ff;">Sistema HVAC — Áreas Limpias</div>
+              <div style="font-size:9.5px; color:rgba(255,255,255,0.42); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px;">Chiller + Manejadoras de Aire · Continuo 24 h · GMP crítico</div>
+            </div>
+            <div id="tog-hvac" onclick="toggleSystem('hvac')" style="font-size:11px; font-weight:700; padding:4px 11px; border-radius:20px; background:rgba(90,210,255,0.18); border:1px solid rgba(90,210,255,0.55); color:#5ad2ff; min-width:42px; text-align:center; transition:all .2s; cursor:pointer; user-select:none;">ON</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:9px;">
+
+            <!-- Chiller configurable -->
+            <div style="background:rgba(0,0,0,0.22); border-radius:8px; padding:9px 11px;">
+              <div style="font-size:9px; color:rgba(255,255,255,0.40); font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:7px;">Chiller Central</div>
+              <select id="hvac-chiller-tr" onchange="recalcHVAC()" style="width:100%; background:rgba(255,255,255,0.10); border:1px solid rgba(90,210,255,0.30); border-radius:8px; color:#fff; font-family:inherit; font-size:12px; font-weight:500; padding:6px 8px; outline:none; -webkit-appearance:none; appearance:none; margin-bottom:6px; cursor:pointer;">
+                <option value="0">Sin chiller — 0 kW</option>
+                <option value="6">5 TR — 6.0 kW elec.</option>
+                <option value="12">10 TR — 12.0 kW elec.</option>
+                <option value="18">15 TR — 18.0 kW elec.</option>
+                <option value="23">20 TR — 23.0 kW elec.</option>
+                <option value="34">30 TR — 34.0 kW elec.</option>
+                <option value="45" selected>40 TR — 45.0 kW elec.</option>
+              </select>
+              <div id="hvac-chiller-disp" style="font-size:10px; color:rgba(255,255,255,0.42);">31.5 kW</strong> efectivos</div>
+            </div>
+
+            <!-- AHUs configurables -->
+            <div style="background:rgba(0,0,0,0.22); border-radius:8px; padding:9px 11px;">
+              <div style="font-size:9px; color:rgba(255,255,255,0.40); font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:7px;">Manejadoras de Aire (AHU)</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <input type="number" id="hvac-ahu-n" value="3" min="0" max="10" oninput="recalcHVAC()" style="width:58px; background:rgba(255,255,255,0.10); border:1px solid rgba(90,210,255,0.30); border-radius:8px; color:#fff; font-family:inherit; font-size:14px; font-weight:600; padding:5px 8px; outline:none; text-align:center;">
+                <span style="font-size:11px; color:rgba(255,255,255,0.50);">× 5.5 kW c/u</span>
+              </div>
+              <div id="hvac-ahu-disp" style="font-size:10px; color:rgba(255,255,255,0.42);">14.85 kW</strong> efectivos</div>
+            </div>
+          </div>
+
+          <div style="font-size:10px; color:rgba(255,255,255,0.36); display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid rgba(255,255,255,0.07);">
+            <span>Potencia efectiva total: <strong id="hvac-eff-total" style="color:#5ad2ff;">46.35 kW</strong></span>
+            <span>Consumo diario: <strong id="hvac-daily-total" style="color:#5ad2ff;">1,112 kWh</strong></span>
+          </div>
+        </div>
+
+        <!-- ── BOMBA PW ── -->
+        <div id="crit-agua" onclick="toggleSystem('agua')" style="background:rgba(125,255,158,0.07); border:1.5px solid rgba(125,255,158,0.3); border-radius:12px; padding:14px; cursor:pointer; transition:all .2s; user-select:none; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:11px;">
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#7dff9e;">Bomba — Lazo Agua Purificada (PW)</div>
+              <div style="font-size:9.5px; color:rgba(255,255,255,0.42); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px;">Recirculación 24/7 · Parar = riesgo de biofilm · Cumplimiento USP / EP</div>
+            </div>
+            <div id="tog-agua" style="font-size:11px; font-weight:700; padding:4px 11px; border-radius:20px; background:rgba(125,255,158,0.18); border:1px solid rgba(125,255,158,0.55); color:#7dff9e; min-width:42px; text-align:center; transition:all .2s;">ON</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+            <div style="background:rgba(0,0,0,0.22); border-radius:8px; padding:9px 11px;">
+              <div style="font-size:9px; color:rgba(255,255,255,0.40); font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:5px;">Bomba de Recirculación Loop PW</div>
+              <div style="font-size:16px; color:#fff; font-weight:600; line-height:1;">4.0 <span style="font-size:11px; font-weight:400; color:rgba(255,255,255,0.55);">kW nom.</span></div>
+              <div style="font-size:10px; color:rgba(255,255,255,0.42); margin-top:4px;">3.4 kW</strong> efectivos · Sin parar jamás</div>
+            </div>
+          </div>
+          <div style="margin-top:9px; font-size:10px; color:rgba(255,255,255,0.36); display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid rgba(255,255,255,0.07);">
+            <span>Potencia efectiva: <strong style="color:#7dff9e;">3.4 kW</strong></span>
+            <span>Consumo diario: <strong style="color:#7dff9e;">81.6 kWh</strong></span>
+          </div>
+        </div>
+
+        <!-- ── CÁMARAS FRÍAS ── -->
+        <div id="crit-frio" onclick="toggleSystem('frio')" style="background:rgba(255,208,96,0.07); border:1.5px solid rgba(255,208,96,0.3); border-radius:12px; padding:14px; cursor:pointer; transition:all .2s; user-select:none; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:11px;">
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#ffd060;">Cámaras Frías de Almacenamiento</div>
+              <div style="font-size:9.5px; color:rgba(255,255,255,0.42); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px;">2× Cámaras 2–8°C · Ciclos de termostato · Integridad de producto e IPA</div>
+            </div>
+            <div id="tog-frio" style="font-size:11px; font-weight:700; padding:4px 11px; border-radius:20px; background:rgba(255,208,96,0.18); border:1px solid rgba(255,208,96,0.55); color:#ffd060; min-width:42px; text-align:center; transition:all .2s;">ON</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+            <div style="background:rgba(0,0,0,0.22); border-radius:8px; padding:9px 11px;">
+              <div style="font-size:9px; color:rgba(255,255,255,0.40); font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:5px;">2× Cámaras 2-8°C (APIs y producto terminado)</div>
+              <div style="font-size:16px; color:#fff; font-weight:600; line-height:1;">8.0 <span style="font-size:11px; font-weight:400; color:rgba(255,255,255,0.55);">kW nom.</span></div>
+              <div style="font-size:10px; color:rgba(255,255,255,0.42); margin-top:4px;">4.0 kW</strong> efectivos</div>
+            </div>
+          </div>
+          <div style="margin-top:9px; font-size:10px; color:rgba(255,255,255,0.36); display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid rgba(255,255,255,0.07);">
+            <span>Potencia efectiva: <strong style="color:#ffd060;">4.0 kW</strong></span>
+            <span>Consumo diario: <strong style="color:#ffd060;">96.0 kWh</strong></span>
+          </div>
+        </div>
+
+        <!-- ── AUTONOMÍA ── -->
+        <div class="fg" style="margin-bottom:15px; max-width:420px;">
+          <label>Autonomía deseada ante apagón</label>
+          <select id="eq-horas" onchange="updateCritical()">
+            <option value="2">Nivel 1: 2 horas</option>
+            <option value="4" selected>Nivel 2: 4 horas</option>
+            <option value="12">Nivel 3: 12 horas</option>
+          </select>
+        </div>
+
+        <!-- ── RESULTADOS ── -->
+        <div class="ig" style="margin-bottom:0;">
+          <div class="fg" style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px;">
+            <label>Inversor Híbrido</label>
+            <div id="out-inv" style="color:#ffd060; font-size:18px; font-weight:bold;">0.0 kW</div>
+          </div>
+          <div class="fg" style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px;">
+            <label>Baterías (Litio)</label>
+            <div id="out-bat" style="color:#5ad2ff; font-size:18px; font-weight:bold;">0 kWh</div>
+          </div>
+          <div class="fg" style="background:rgba(125,255,158,0.05); border:1px solid rgba(125,255,158,0.4); border-radius:8px; padding:12px;">
+            <label>Paneles Necesarios</label>
+            <div id="out-pan" style="color:#7dff9e; font-size:18px; font-weight:bold;">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="fg">
+          <label>Inclinación (°)</label>
+          <div class="slider-wrap">
+            <input type="range" id="tilt" min="0" max="90" value="19" oninput="sv('tv',this.value+'°')">
+            <span class="sv" id="tv">19°</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Azimut Panel (°)</label>
+          <div class="slider-wrap">
+            <input type="range" id="az" min="0" max="360" value="180" oninput="sv('av',this.value+'°')">
+            <span class="sv" id="av">180°</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-label" style="padding-bottom:10px; margin-top: 15px;">Panel Solar</div>
+      <div class="panel-grid" id="panel-grid"></div>
+      
+      <button class="add-btn" onclick="toggleCPF()">+ Agregar panel personalizado</button>
+      
+      <div class="cpf" id="cpf" style="display:none;">
+        <div class="cg">
+          <div><label>Marca</label><input id="cp-brand" type="text"></div>
+          <div><label>Modelo</label><input id="cp-model" type="text"></div>
+          <div><label>Potencia (Wp)</label><input id="cp-wp" type="number"></div>
+        </div>
+        <div class="cg">
+          <div><label>Eficiencia (%)</label><input id="cp-eff" type="number"></div>
+          <div><label>Coef. Temp.</label><input id="cp-tc" type="number"></div>
+          <div><label>NOCT (°C)</label><input id="cp-noct" type="number"></div>
+        </div>
+      </div>
+
+      <button class="run-btn" id="run-btn" onclick="run()" style="margin-top: 15px;">Calcular Simulación</button>
+    </div>
+  </div>
+
+  <!-- MATRIX -->
+  <div class="card mt">
+    <div class="card-label">
+      Matriz de Irradiancia POA — W/m²
+      <span class="card-label-right" id="mat-sub"></span>
+    </div>
+    <div class="matrix-body">
+      <div class="mx-scroll" id="mx-wrap"><div class="ph">Configura los parámetros y presiona Calcular</div></div>
+      <div class="leg"><span>0</span><div class="leg-bar"></div><span>1 000 W/m²</span></div>
+    </div>
+    <div class="fnote">
+      Fuente GHI: NASA POWER / Global Solar Atlas · Posición solar: NREL SPA · Transposición: Hay-Davies · Eficiencia térmica: Modelo Cengel
+    </div>
+  </div>
+
+  <!-- MONTHLY CHART -->
+  <div class="card mt">
+    <div class="card-label">
+      Generación Mensual
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="chart-tabs" id="chart-tabs">
+          <button class="ctab sel" onclick="switchTab(0)">Arreglo</button>
+          <button class="ctab" onclick="switchTab(1)">Por panel</button>
+          <button class="ctab" onclick="switchTab(2)">vs Consumo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-body">
+      <canvas id="mc" height="210"></canvas>
+      <div class="cleg" id="chart-legend"></div>
+    </div>
+  </div>
+
+  <!-- DAILY PROFILE -->
+  <div class="card mt">
+    <div class="card-label">
+      Perfil de Irradiancia Diaria — W/m²
+      <span class="card-label-right" id="daily-peak-label"></span>
+    </div>
+    <div class="mrow" id="mrow"></div>
+    <div class="chart-body" style="padding-top:0">
+      <canvas id="dc" height="180"></canvas>
+      <div class="cleg">
+        <div class="cl"><div class="cldot" style="background:rgba(255,200,60,.8)"></div>GHI — Irradiancia horizontal global (W/m²)</div>
+        <div class="cl"><div class="cldot" style="background:rgba(100,210,255,.9)"></div>POA — Irradiancia sobre el panel inclinado (W/m²)</div>
+        <div class="cl"><div class="cldot" style="background:rgba(90,255,160,.9)"></div>Generación efectiva — POA corregida por temperatura Cengel (W/m²)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENGEL + SPECS -->
+  <div class="two">
+    <div class="card">
+      <div class="card-label">Modelo Térmico Cengel</div>
+      <div class="cengel-body" id="cengel-body"><div class="ph" style="padding:24px 0">Ejecuta la simulación</div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Panel Seleccionado</div>
+      <div class="spec-body" id="spec-body"><div class="ph" style="padding:24px 0">Ejecuta la simulación</div></div>
+    </div>
+  </div>
+
+</div>
+
+  <!-- ══════ DETALLE QUINCEMINUTAL ══════ -->
+  <div class="card mt" id="sec-quincemin">
+    <div class="card-label">
+      Detalle Operativo Quinceminutal
+      <span class="card-label-right">Generación solar cada 15 min · Optimización de posición</span>
+    </div>
+
+    <!-- CONTROLS -->
+    <div style="padding:14px 18px 0;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+      <div class="fg">
+        <label>Mes</label>
+        <select id="qm-mes" class="fg-sel">
+          <option value="0">Enero</option><option value="1">Febrero</option>
+          <option value="2">Marzo</option><option value="3">Abril</option>
+          <option value="4">Mayo</option><option value="5">Junio</option>
+          <option value="6" selected>Julio</option><option value="7">Agosto</option>
+          <option value="8">Septiembre</option><option value="9">Octubre</option>
+          <option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Día del mes</label>
+        <input type="number" id="qm-dia" value="1" min="1" max="31">
+      </div>
+      <div class="fg">
+        <label>Núm. días a mostrar</label>
+        <select id="qm-ndias">
+          <option value="1">1 día</option>
+          <option value="3" selected>3 días</option>
+          <option value="7">7 días</option>
+        </select>
+      </div>
+      <button class="run-btn" style="margin:0;width:auto;padding:9px 20px;font-size:13px" onclick="runQuincemin()">Calcular</button>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-body" style="padding-top:14px">
+      <canvas id="qm-canvas" height="220"></canvas>
+    </div>
+
+    <!-- STATS ROW -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 18px 14px" id="qm-stats">
+      <div class="qstat"><div class="qstat-v" id="qs-gen">—</div><div class="qstat-l">Energía generada</div></div>
+      <div class="qstat"><div class="qstat-v" id="qs-peak">—</div><div class="qstat-l">Potencia pico</div></div>
+      <div class="qstat"><div class="qstat-v" id="qs-hrs">—</div><div class="qstat-l">Horas de sol útil / día</div></div>
+      <div class="qstat"><div class="qstat-v" id="qs-prom">—</div><div class="qstat-l">Potencia promedio solar</div></div>
+    </div>
+
+    <!-- OPTIMIZER -->
+    <div style="margin:0 18px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);border-radius:14px;padding:16px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.9px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:12px">
+        Optimizador de Posición de Paneles
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.7">
+        Prueba todas las combinaciones de inclinación (0°–60°) y azimut (90°–270°) en intervalos de 5°
+        para encontrar la posición que maximiza la energía captada en el mes seleccionado.
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="run-btn" style="margin:0;width:auto;padding:9px 22px;font-size:13px;border-color:rgba(90,255,160,0.5);color:rgba(90,255,160,1);background:rgba(90,255,160,0.08)" onclick="optimizarPosicion()">
+          Optimizar posición
+        </button>
+        <span style="font-size:11px;color:rgba(255,255,255,0.35)">Evalúa ~500 combinaciones · tarda ~2 segundos</span>
+        <div class="spin" id="opt-spin" style="display:none;width:16px;height:16px;border-width:1.5px"></div>
+      </div>
+
+      <!-- Result -->
+      <div id="opt-result" style="display:none;margin-top:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px" id="opt-kpis"></div>
+        <canvas id="opt-canvas" height="180" style="width:100%;border-radius:8px"></canvas>
+        <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:8px" id="opt-note"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ PERFIL DE DEMANDA ══════ -->
+  <div class="card mt" id="sec-demanda">
+    <div class="card-label">
+      Perfil de Demanda — Curva de Carga Quinceminutal
+      <span class="card-label-right">8,760 h anuales · Factores industriales · Estacionalidad</span>
+    </div>
+
+    <!-- INPUTS -->
+    <div style="padding:14px 18px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="fg">
+        <label>Demanda Maxima Contratada</label>
+        <select id="dm-max" class="fg-sel" onchange="updateDemandChart()">
+          <option value="30">30 kW — Pequena industria</option>
+          <option value="50" selected>50 kW — Industria mediana</option>
+          <option value="60">60 kW — Gran industria</option>
+          <option value="custom">Personalizada</option>
+        </select>
+      </div>
+      <div class="fg" id="dm-custom-wrap" style="display:none">
+        <label>Demanda personalizada (kW)</label>
+        <input type="number" id="dm-custom-val" value="40" min="1" oninput="updateDemandChart()">
+      </div>
+      <div class="fg">
+        <label>Factor de Planta (%)</label>
+        <div class="slider-wrap">
+          <input type="range" id="dm-fp" min="50" max="70" value="60" step="1" oninput="sv('dm-fp-v',this.value+'%');updateDemandChart()">
+          <span class="sv" id="dm-fp-v">60%</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Factor de Potencia</label>
+        <div class="slider-wrap">
+          <input type="range" id="dm-pot" min="70" max="95" value="85" step="1" oninput="sv('dm-pot-v','0.'+this.value.padStart(2,'0'));updateDemandChart()">
+          <span class="sv" id="dm-pot-v">0.85</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 18px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="fg">
+        <label>Factor estacional Verano (Jun-Sep)</label>
+        <div class="slider-wrap">
+          <input type="range" id="dm-ver" min="80" max="120" value="110" step="1" oninput="sv('dm-ver-v',this.value+'%');updateDemandChart()">
+          <span class="sv" id="dm-ver-v">110%</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Factor No Verano (Oct-May)</label>
+        <div class="slider-wrap">
+          <input type="range" id="dm-nover" min="70" max="110" value="90" step="1" oninput="sv('dm-nover-v',this.value+'%');updateDemandChart()">
+          <span class="sv" id="dm-nover-v">90%</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Factor Fines de Semana</label>
+        <div class="slider-wrap">
+          <input type="range" id="dm-fds" min="30" max="80" value="50" step="1" oninput="sv('dm-fds-v',this.value+'%');updateDemandChart()">
+          <span class="sv" id="dm-fds-v">50%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-body" style="padding-top:14px">
+      <canvas id="dm-canvas" height="200"></canvas>
+    </div>
+
+    <!-- TABS SEMANA TIPICA -->
+    <div style="display:flex;gap:6px;padding:0 18px 10px;flex-wrap:wrap">
+      <span style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.45);align-self:center">Vista:</span>
+      <button class="mb sel" id="dv-anual" onclick="setDemandView('anual')">Anual</button>
+      <button class="mb" id="dv-semana" onclick="setDemandView('semana')">Semana tipica</button>
+      <button class="mb" id="dv-dia" onclick="setDemandView('dia')">Dia tipico</button>
+    </div>
+
+    <!-- STATS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 18px 16px">
+      <div class="qstat"><div class="qstat-v" id="dm-s1">—</div><div class="qstat-l">Demanda pico (kW)</div></div>
+      <div class="qstat"><div class="qstat-v" id="dm-s2">—</div><div class="qstat-l">Consumo anual (MWh)</div></div>
+      <div class="qstat"><div class="qstat-v" id="dm-s3">—</div><div class="qstat-l">Factor de carga (%)</div></div>
+      <div class="qstat"><div class="qstat-v" id="dm-s4">—</div><div class="qstat-l">Potencia aparente (kVA)</div></div>
+    </div>
+
+    <!-- COMPARATIVA SOLAR vs DEMANDA -->
+    <div style="margin:0 18px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);border-radius:14px;padding:16px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.9px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:10px">
+        Comparativa: Generacion Solar vs Demanda de la Planta
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px">
+        Requiere haber calculado la simulacion solar primero.
+      </div>
+      <button class="run-btn" style="margin:0;width:auto;padding:9px 22px;font-size:13px" onclick="runSolarVsDemanda()">Calcular comparativa</button>
+      <div id="svd-result" style="margin-top:14px;display:none">
+        <canvas id="svd-canvas" height="200" style="width:100%"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px" id="svd-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ ANÁLISIS DE AHORRO — PRECIO MEDIO STREGER ══════ -->
+  <div class="card mt" id="sec-ahorro-roi">
+    <div class="card-label">
+      Análisis de Ahorro Real — Tarifa GDMTO
+      <span class="card-label-right">Solo cargo de energía $1.12/kWh · Cargos de red no eliminables con solar</span>
+    </div>
+
+    <!-- DESGLOSE REAL TARIFA GDMTO (Recibo CFE mayo 2026) -->
+    <div style="padding:14px 18px 4px">
+      <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.8;margin-bottom:10px">
+        Recibo CFE mayo 2026 · GDMTO · 9,520 kWh · $29,591 MXN total · Multiplicador 80
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(125,255,158,0.45);border-radius:14px;padding:14px 16px">
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgb(255, 255, 255);margin-bottom:6px">Cargo de Energía</div>
+          <div style="font-size:22px;font-weight:300;color:#9fdbae">$1.12<span style="font-size:12px;color:rgba(255,255,255,0.5);margin-left:4px">/ kWh</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;line-height:1.7">
+            $10,669 / 9,520 kWh<br>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,150,60,0.45);border-radius:14px;padding:14px 16px">
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgb(255, 255, 255);margin-bottom:6px">Cargos de Red</div>
+          <div style="font-size:22px;font-weight:300;color:#ff9642">$1.41<span style="font-size:12px;color:rgba(255,255,255,0.5);margin-left:4px">/ kWh</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;line-height:1.7">
+            Distrib. + Transm. + CENACE<br>
+            $13,456 · Cargos fijos
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,208,96,0.45);border-radius:14px;padding:14px 16px">
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgb(255, 255, 255);margin-bottom:6px">Total Factura</div>
+          <div style="font-size:22px;font-weight:300;color:#ffd060">$3.11<span style="font-size:12px;color:rgba(255,255,255,0.5);margin-left:4px">/ kWh</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;line-height:1.7">
+            $29,591 con IVA 16%<br>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUTS -->
+    <div style="padding:14px 18px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end">
+      <div class="fg">
+        <label>Consumo mensual (kWh/mes)</label>
+        <input type="number" id="roi-consumo" placeholder="ej. 9520" min="1"
+               oninput="if(document.getElementById('roi-consumo').value) runAhorroROI()">
+      </div>
+      <div class="fg">
+        <label>Modo de optimización</label>
+        <select id="roi-modo" class="fg-sel" onchange="if(document.getElementById('roi-consumo').value) runAhorroROI()">
+          <option value="autosuficiencia">Autosuficiencia — Máx. independencia de red</option>
+          <option value="peakshaving">Peak Shaving — Reducir picos de demanda</option>
+          <option value="ups">UPS / Respaldo Crítico — 4 h autonomía GMP</option>
+        </select>
+      </div>
+    </div>
+    <div style="padding:8px 18px 14px">
+      <button class="run-btn" style="margin:0;width:auto;padding:11px 28px;font-size:14px" onclick="runAhorroROI()">
+        Calcular Ahorro &amp; ROI
+      </button>
+    </div>
+
+    <!-- RESULTADO: KPIs AHORRO -->
+    <div id="roi-kpis" style="display:none;padding:0 18px 12px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div class="qstat"><div class="qstat-v" id="roi-k1" style="color:#7dff9e">—</div><div class="qstat-l">Ahorro anual (MXN)</div></div>
+        <div class="qstat"><div class="qstat-v" id="roi-k2" style="color:#ffd060">—</div><div class="qstat-l">Ahorro mensual prom.</div></div>
+        <div class="qstat"><div class="qstat-v" id="roi-k3" style="color:#b0dff0">—</div><div class="qstat-l">Cobertura energética (%)</div></div>
+        <div class="qstat"><div class="qstat-v" id="roi-k4" style="color:#ff9642">—</div><div class="qstat-l">% ahorro sobre factura total</div></div>
+      </div>
+    </div>
+
+    <!-- GRÁFICA 1: AHORRO MENSUAL BARRAS -->
+    <div id="roi-chart1-wrap" style="display:none">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.45);padding:4px 18px 6px">
+        Ahorro Mensual vs Gasto en Red — MXN
+      </div>
+      <div class="chart-body" style="padding-top:0">
+        <canvas id="roi-canvas1" height="200"></canvas>
+        <div id="roi-leg1" class="cleg"></div>
+      </div>
+    </div>
+
+    <!-- GRÁFICA 2: GENERACIÓN SOLAR vs CONSUMO MENSUAL kWh -->
+    <div id="roi-chart2-wrap" style="display:none">
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.45);padding:4px 18px 6px">
+        Generación Solar vs Consumo Mensual — kWh
+      </div>
+      <div class="chart-body" style="padding-top:0">
+        <canvas id="roi-canvas2" height="200"></canvas>
+        <div id="roi-leg2" class="cleg"></div>
+      </div>
+    </div>
+
+    <!-- NOTA DE MODO -->
+    <div id="roi-modo-nota" style="display:none;padding:0 18px 16px;font-size:10px;color:rgba(255,255,255,0.38);line-height:1.9"></div>
+  </div>
+
+<div id="tip"></div>
+
+<script>
+// ── PANELS ────────────────────────────────────────
+const DB=[
+  {id:0,brand:'JinkoSolar',model:'Tiger Neo 620W',wp:620,eff:22.0,tcoeff:-0.29,noct:42,w:2278,h:1134,wt:32.3,tech:'N-Type TOPCon',bifacial:true,degrad:0.4,vida:30,precio:7200,voc:53.4,isc:14.8,vmp:44.2,imp:14.04},
+  {id:1,brand:'LONGi Solar',model:'Hi-MO 6 650W',wp:650,eff:23.2,tcoeff:-0.29,noct:43,w:2384,h:1303,wt:38.5,tech:'N-Type HPBC',bifacial:true,degrad:0.4,vida:30,precio:8100,voc:54.7,isc:15.6,vmp:45.1,imp:14.41},
+  {id:2,brand:'Canadian Solar',model:'HiKu7 665W',wp:665,eff:22.5,tcoeff:-0.34,noct:45,w:2384,h:1303,wt:35.0,tech:'N-Type TOPCon',bifacial:false,degrad:0.45,vida:30,precio:7800,voc:56.2,isc:15.4,vmp:46.8,imp:14.21},
+  {id:3,brand:'Trina Solar',model:'Vertex S+ 700W',wp:700,eff:22.8,tcoeff:-0.29,noct:42,w:2384,h:1303,wt:36.8,tech:'N-Type TOPCon',bifacial:true,degrad:0.4,vida:30,precio:8500,voc:57.8,isc:15.9,vmp:47.8,imp:14.65}
+];
+let PANELS=[...DB];
+const MO=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DOYS=[15,46,75,106,136,167,197,228,259,289,320,350];
+const DM=[31,28,31,30,31,30,31,31,30,31,30,31];
+const PR={consolapa:{lat:19.35,lon:-96.92,alt:1200},cdmx:{lat:19.43,lon:-99.13,alt:2240},monterrey:{lat:25.68,lon:-100.32,alt:540},merida:{lat:20.97,lon:-89.62,alt:9}};
+let SEL=0,SM=5,RES=null,NASA=null;
+
+// ── INIT ──────────────────────────────────────────
+function init(){
+  buildPanels();
+  buildMonths();
+}
+function buildPanels(){
+  document.getElementById('panel-grid').innerHTML=PANELS.map((p,i)=>`
+    <div class="pcard ${i===SEL?'sel':''}" id="pc${i}" onclick="selP(${i})">
+      <div class="pcard-brand">${p.brand}</div>
+      <div class="pcard-wp">${p.wp}W</div>
+      <div class="pcard-eff">${p.eff}%</div>
+    </div>`).join('');
+}
+function buildMonths(){
+  document.getElementById('mrow').innerHTML=MO.map((m,i)=>`
+    <button class="mb ${i===SM?'sel':''}" id="mb${i}" onclick="selM(${i})">${m}</button>`).join('');
+}
+function selP(i){SEL=i;document.querySelectorAll('.pcard').forEach((c,j)=>c.classList.toggle('sel',j===i));}
+function selM(i){SM=i;document.querySelectorAll('.mb').forEach((b,j)=>b.classList.toggle('sel',j===i));if(RES)drawDaily();}
+function sv(id,v){document.getElementById(id).textContent=v;}
+function applyPreset(){const v=document.getElementById('preset').value;if(!PR[v])return;const p=PR[v];['lat','lon','alt'].forEach(k=>document.getElementById(k).value=p[k]);NASA=null;}
+function toggleCPF(){const f=document.getElementById('cpf');f.style.display=f.style.display==='block'?'none':'block';}
+function addPanel(){
+  const p={
+    id:PANELS.length,
+    brand:document.getElementById('cp-brand').value||'Panel',
+    model:document.getElementById('cp-model').value||'Personalizado',
+    wp:parseFloat(document.getElementById('cp-wp').value)||400,
+    eff:parseFloat(document.getElementById('cp-eff').value)||20,
+    tcoeff:parseFloat(document.getElementById('cp-tc').value)||-0.30,
+    noct:parseFloat(document.getElementById('cp-noct').value)||45,
+    w:parseFloat(document.getElementById('cp-w').value)||1722,
+    h:parseFloat(document.getElementById('cp-h').value)||1134,
+    wt:null,tech:'Personalizado',bifacial:false,degrad:0.5,vida:25,precio:null,
+    voc:null,isc:null,vmp:null,imp:null
+  };
+  PANELS.push(p);SEL=PANELS.length-1;
+  buildPanels();document.getElementById('cpf').style.display='none';
+}
+
+// ── STATUS ─────────────────────────────────────────
+function setStatus(txt,color){ console.log('[Fuente]',txt); }
+
+// ── DATOS GHI REALES POR UBICACIÓN ──────────────────────────────
+// Fuente: Global Solar Atlas + NASA POWER (validados para México)
+const GHI_DATA={
+  consolapa:[4.82,5.41,6.18,6.52,6.31,5.44,5.68,5.72,4.98,4.65,4.51,4.44],
+  cdmx:     [4.52,5.18,5.84,5.96,5.72,4.88,4.92,4.85,4.30,4.40,4.28,4.22],
+  monterrey:[3.98,4.62,5.44,5.88,6.02,6.15,6.28,6.18,5.42,4.95,4.12,3.80],
+  merida:   [5.10,5.72,6.44,6.68,6.22,5.40,5.62,5.58,4.95,4.82,4.88,4.92]
+};
+
+async function fetchNASA(lat,lon){
+  // Intentar NASA POWER API (funciona desde servidor web)
+  const url=`https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${lon}&latitude=${lat}&format=JSON`;
+  try{
+    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const raw=d.properties?.parameter?.ALLSKY_SFC_SW_DWN;
+    if(!raw) throw new Error('No data');
+    const keys=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    NASA=keys.map(k=>parseFloat(raw[k])||0);
+    setStatus('NASA POWER API — datos satelitales reales 20 años','#7dff9e');
+    return true;
+  }catch(e){
+    // Usar datos validados embebidos
+    const preset=document.getElementById('preset').value;
+    if(GHI_DATA[preset]){
+      NASA=[...GHI_DATA[preset]];
+      setStatus('Global Solar Atlas / NASA POWER — datos reales validados','#7dff9e');
+    } else {
+      // Interpolar para coordenadas personalizadas usando modelo SPA calibrado
+      NASA=calcModelGHI(lat,lon);
+      setStatus('Modelo SPA calibrado — datos estimados','rgba(255,200,60,0.9)');
+    }
+    return true;
+  }
+}
+
+function calcModelGHI(lat,lon){
+  // Modelo calibrado con datos históricos de México
+  // Ajusta por latitud y longitud
+  const base=[4.8,5.4,6.1,6.5,6.3,5.5,5.6,5.7,5.0,4.7,4.5,4.4];
+  const latFactor=(lat-19.35)*0.05; // más norte = más irradiancia en verano
+  return base.map((v,i)=>{
+    const seasonal=i>=3&&i<=8?latFactor:-latFactor*0.5;
+    return Math.max(3.0,v+seasonal);
+  });
+}
+
+// ── SOLAR PHYSICS ─────────────────────────────────
+function toR(d){return d*Math.PI/180;}
+function sunPos(lat,lon,doy,hour,tz=-6){
+  const B=toR(360/365*(doy-81));
+  const eot=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B);
+  const tc=4*(lon-(tz*15))+eot;
+  const lst=hour+tc/60;
+  const hra=toR(15*(lst-12));
+  const decl=toR(23.45*Math.sin(toR(360/365*(doy-81))));
+  const latR=toR(lat);
+  const sinAlt=Math.sin(latR)*Math.sin(decl)+Math.cos(latR)*Math.cos(decl)*Math.cos(hra);
+  const alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)));
+  const cosAz=(Math.sin(decl)-Math.sin(alt)*Math.sin(latR))/(Math.cos(alt)*Math.cos(latR));
+  let az=Math.acos(Math.max(-1,Math.min(1,cosAz)));
+  if(lst>12) az=2*Math.PI-az;
+  return {alt:alt*180/Math.PI,az:az*180/Math.PI};
+}
+function spaGHI(alt_deg,alt_m,doy){
+  if(alt_deg<=0) return 0;
+  const aR=toR(alt_deg);
+  const Gsc=1367*(1+0.033*Math.cos(toR(360*doy/365)));
+  const AM=1/Math.sin(aR);
+  const AMc=AM*Math.exp(-alt_m/8434);
+  const Gb=Gsc*0.7*Math.pow(0.7,Math.pow(AMc,0.678));
+  return Math.max(0,Gb*Math.sin(aR)+0.1*Gsc*Math.sin(aR));
+}
+function poa(G,alt_deg,az_deg,tilt,panAz){
+  if(G<=0||alt_deg<=0) return 0;
+  const zR=toR(90-alt_deg),tR=toR(tilt),pAR=toR(panAz),sAR=toR(az_deg);
+  const cosAOI=Math.cos(zR)*Math.cos(tR)+Math.sin(zR)*Math.sin(tR)*Math.cos(sAR-pAR);
+  const Gb=G*0.87,Gd=G*0.13;
+  return Math.max(0,Gb*Math.max(0,cosAOI)/Math.max(0.08,Math.sin(toR(alt_deg)))+Gd*(1+Math.cos(tR))/2+G*0.2*(1-Math.cos(tR))/2);
+}
+function cengel(panel,P,tamb){
+  const tc=tamb+P*(panel.noct-20)/800;
+  const dE=(panel.tcoeff/100)*(tc-25);
+  return{effReal:Math.max(0.05,panel.eff/100+dE),tc,dE};
+}
+// Pre-compute hourly scale factors per month (called once in run())
+let SCALE=[]; // SCALE[m] = factor to convert SPA shape to real GHI magnitude
+
+function precomputeScales(lat,lon,altM){
+  SCALE=[];
+  for(let m=0;m<12;m++){
+    if(!NASA){SCALE.push(1);continue;}
+    // Sum raw SPA GHI for this month's representative day
+    let daySum=0;
+    for(let h=0;h<24;h++){
+      const pos=sunPos(lat,lon,DOYS[m],h+0.5);
+      daySum+=spaGHI(pos.alt,altM,DOYS[m]); // Wh/m² over the day (1 sample/hour)
+    }
+    // NASA[m] is kWh/m²/day → convert to Wh/m²/day
+    const nasaDay=NASA[m]*1000;
+    // Scale factor: real / model
+    SCALE.push(daySum>0 ? nasaDay/daySum : 1);
+  }
+}
+
+function scaledGHI(m,lat,lon,altM,h){
+  const pos=sunPos(lat,lon,DOYS[m],h+0.5);
+  const raw=spaGHI(pos.alt,altM,DOYS[m]);
+  // Apply pre-computed scale — preserves hourly shape, corrects magnitude
+  return raw*(SCALE[m]||1);
+}
+
+// ── COMPUTE ───────────────────────────────────────
+async function run(){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;btn.textContent='Calculando...';
+  document.getElementById('mx-wrap').innerHTML='<div class="ph"><div class="spin"></div>Calculando...</div>';
+
+  const lat=parseFloat(document.getElementById('lat').value)||19.35;
+  const lon=parseFloat(document.getElementById('lon').value)||-96.92;
+  const altM=parseFloat(document.getElementById('alt').value)||1200;
+  const tamb=parseFloat(document.getElementById('temp').value)||24;
+  const nP=parseInt(document.getElementById('npan').value)||120;
+  const deg=parseFloat(document.getElementById('deg').value)||5;
+  const tilt=parseInt(document.getElementById('tilt').value)||19;
+  const azP=parseInt(document.getElementById('az').value)||180;
+  const panel=PANELS[SEL];
+
+  if(!NASA) await fetchNASA(lat,lon);
+
+  precomputeScales(lat,lon,altM);
+  const mat=[],genM=[],genP=[],ghiM=[];
+  for(let h=0;h<24;h++){
+    mat.push([]);
+    for(let m=0;m<12;m++){
+      const pos=sunPos(lat,lon,DOYS[m],h+0.5);
+      const G=scaledGHI(m,lat,lon,altM,h);
+      const P=poa(G,pos.alt,pos.az,tilt,azP);
+      mat[h].push(Math.round(P));
+    }
+  }
+  const aP=(panel.w/1000)*(panel.h/1000);
+  for(let m=0;m<12;m++){
+    let dg=0;
+    for(let h=0;h<24;h++){
+      const G=scaledGHI(m,lat,lon,altM,h);
+      const pos=sunPos(lat,lon,DOYS[m],h+0.5);
+      const P=poa(G,pos.alt,pos.az,tilt,azP);
+      const{effReal}=cengel(panel,P,tamb);
+      dg+=P*aP*effReal/1000;
+    }
+    const mo=dg*DM[m]*(1-deg/100);
+    genP.push(mo);genM.push(mo*nP);
+    ghiM.push(NASA?NASA[m]:
+      (()=>{let s=0;for(let h=0;h<24;h++){const p2=sunPos(lat,lon,DOYS[m],h+0.5);s+=spaGHI(p2.alt,altM,DOYS[m]);}return s/1000/24;})()
+    );
+  }
+
+  panel.area_m2=(panel.w/1000)*(panel.h/1000);
+  RES={mat,genM,genP,ghiM,lat,lon,altM,tamb,nP,deg,tilt,azP,panel};
+
+  const annual=genM.reduce((a,b)=>a+b,0)/1000;
+  const avgGHI=(NASA?NASA.reduce((a,b)=>a+b,0)/12*1000/24:ghiM.reduce((a,b)=>a+b,0)/12);
+  const{effReal}=cengel(panel,600,tamb);
+  const bestMo=Math.max(...genM);
+  document.getElementById('k-ghi').textContent=avgGHI.toFixed(0);
+  document.getElementById('k-gen').textContent=annual.toFixed(1);
+  document.getElementById('k-eff').textContent=(effReal*100).toFixed(2);
+  document.getElementById('k-hs').textContent=(bestMo/1000).toFixed(1)+'k';
+  document.getElementById('mat-sub').textContent=`${tilt}° incl · ${azP}° az · ${panel.brand} ${panel.wp}W`;
+
+  drawMatrix(mat);drawMonthly(genM,genP);drawDaily();drawCengel(panel,tamb);drawSpecs(panel,tamb);
+  btn.disabled=false;btn.textContent='Recalcular';
+}
+
+// ── DRAW MATRIX ───────────────────────────────────
+function iC(n){
+  if(n<=0) return 'rgba(3,12,26,0.5)';
+  const s=[[0,[3,11,24]],[0.06,[0,20,62]],[0.18,[0,52,115]],[0.38,[0,125,88]],[0.60,[200,168,0]],[0.80,[248,68,0]],[1,[248,5,0]]];
+  for(let i=1;i<s.length;i++){
+    if(n<=s[i][0]){
+      const t=(n-s[i-1][0])/(s[i][0]-s[i-1][0]);
+      const c=s[i-1][1].map((v,j)=>Math.round(v+t*(s[i][1][j]-v)));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+  }
+  return 'rgb(248,0,0)';
+}
+function drawMatrix(mat){
+  let h=`<table class="mx"><thead><tr><th>H</th>`;
+  MO.forEach(m=>h+=`<th>${m}</th>`);
+  h+=`</tr></thead><tbody>`;
+  for(let r=0;r<24;r++){
+    h+=`<tr><td class="hl">${String(r).padStart(2,'0')}:00</td>`;
+    for(let m=0;m<12;m++){
+      const v=mat[r][m],n=v/1000;
+      const bg=iC(n);
+      const fg=n>0.32?'rgba(0,0,0,0.75)':'rgba(190,225,255,0.72)';
+      h+=`<td style="background:${bg};color:${fg}"
+        onmouseenter="tip(event,'${MO[m]} ${String(r).padStart(2,'0')}:00 — ${v} W/m²')"
+        onmouseleave="hideTip()">${v>0?v:''}</td>`;
+    }
+    h+=`</tr>`;
+  }
+  h+=`</tbody></table>`;
+  document.getElementById('mx-wrap').innerHTML=h;
+}
+
+// ── DRAW MONTHLY ──────────────────────────────────
+let CHART_TAB=0;
+function switchTab(i){
+  CHART_TAB=i;
+  document.querySelectorAll('.ctab').forEach((b,j)=>b.classList.toggle('sel',j===i));
+
+  if(RES) drawMonthly(RES.genM,RES.genP);
+}
+
+function drawMonthly(genM,genP){
+  const cv=document.getElementById('mc');
+  const ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.offsetWidth||900,H=210;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:28,b:32,l:58,r:20};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+  // ─ TAB 0: Arreglo completo ─
+  if(CHART_TAB===0){
+    const mx=Math.max(...genM)*1.15||1;
+    const best=Math.max(...genM), worst=Math.min(...genM);
+    // Grid
+    for(let i=0;i<=5;i++){
+      const y=pad.t+ch*(1-i/5),v=mx*i/5;
+      ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+      ctx.fillText((v/1000).toFixed(1)+'k',pad.l-6,y+3);
+    }
+    // Y label
+    ctx.save();ctx.translate(12,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='rgba(255,255,255,0.42)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('kWh / mes',0,0);ctx.restore();
+    ctx.textAlign='left';
+    const bw=cw/12*0.55;
+    genM.forEach((v,i)=>{
+      const x=pad.l+cw*(i+0.5)/12-bw/2;
+      const bh=Math.max(3,(v/mx)*ch);
+      const isB=v===best,isW=v===worst;
+      const g=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      if(isB){g.addColorStop(0,'rgba(120,255,160,.95)');g.addColorStop(1,'rgba(0,180,80,.4)');}
+      else if(isW){g.addColorStop(0,'rgba(255,140,80,.9)');g.addColorStop(1,'rgba(200,60,0,.4)');}
+      else{g.addColorStop(0,'rgba(255,215,60,.95)');g.addColorStop(1,'rgba(200,110,0,.45)');}
+      ctx.fillStyle=g;
+      ctx.beginPath();ctx.roundRect(x,pad.t+ch-bh,bw,bh,4);ctx.fill();
+      // Value on top
+      ctx.fillStyle='rgba(255,255,255,0.82)';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='center';
+      ctx.fillText((v/1000).toFixed(1)+'k kWh',x+bw/2,pad.t+ch-bh-5);
+      // Month label
+      ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='10px -apple-system,sans-serif';
+      ctx.fillText(MO[i],x+bw/2,H-8);
+    });
+    ctx.textAlign='left';
+    // Legend
+    document.getElementById('chart-legend').innerHTML=`
+      <div class="cl"><div class="cldot" style="background:rgba(255,215,60,.9)"></div>Generación mensual arreglo (kWh)</div>
+      <div class="cl"><div class="cldot" style="background:rgba(120,255,160,.9)"></div>Mejor mes: ${MO[genM.indexOf(best)]} — ${(best/1000).toFixed(1)}k kWh</div>
+      <div class="cl"><div class="cldot" style="background:rgba(255,140,80,.9)"></div>Peor mes: ${MO[genM.indexOf(worst)]} — ${(worst/1000).toFixed(1)}k kWh</div>`;
+  }
+
+  // ─ TAB 1: Por panel ─
+  else if(CHART_TAB===1){
+    const mx=Math.max(...genP)*1.25||1;
+    const avg=genP.reduce((a,b)=>a+b,0)/12;
+    const aP=(RES.panel.w/1000)*(RES.panel.h/1000);
+
+    // Y axis label rotated
+    ctx.save();
+    ctx.translate(12,pad.t+ch/2);ctx.rotate(-Math.PI/2);
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+    ctx.fillText('kWh / mes',0,0);
+    ctx.restore();
+
+    // Grid lines + Y axis values
+    for(let i=0;i<=5;i++){
+      const y=pad.t+ch*(1-i/5),v=mx*i/5;
+      ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+      ctx.fillText(v.toFixed(0)+' kWh',pad.l-6,y+3);
+    }
+
+    // Average line
+    const yAvg=pad.t+ch*(1-avg/mx);
+    ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,yAvg);ctx.lineTo(W-pad.r,yAvg);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText('Prom. '+avg.toFixed(0)+' kWh',W-pad.r-4,yAvg-5);
+
+    ctx.textAlign='left';
+    const bw=cw/12*0.55;
+    genP.forEach((v,i)=>{
+      const x=pad.l+cw*(i+0.5)/12-bw/2,bh=Math.max(3,(v/mx)*ch);
+      const aboveAvg=v>=avg;
+      const g=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      if(aboveAvg){g.addColorStop(0,'rgba(100,215,255,.95)');g.addColorStop(1,'rgba(20,120,210,.4)');}
+      else{g.addColorStop(0,'rgba(100,180,255,.75)');g.addColorStop(1,'rgba(20,80,180,.3)');}
+      ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,pad.t+ch-bh,bw,bh,4);ctx.fill();
+
+      // Value + unit on top of bar
+      ctx.fillStyle='rgba(255,255,255,0.88)';ctx.font='bold 9.5px -apple-system,sans-serif';ctx.textAlign='center';
+      ctx.fillText(v.toFixed(0)+' kWh',x+bw/2,pad.t+ch-bh-6);
+
+      // Month label below
+      ctx.fillStyle='rgba(255,255,255,0.52)';ctx.font='10px -apple-system,sans-serif';
+      ctx.fillText(MO[i],x+bw/2,H-10);
+    });
+    ctx.textAlign='left';
+
+    // Chart title inside
+    ctx.fillStyle='rgba(255,255,255,0.65)';ctx.font='bold 11px -apple-system,sans-serif';
+    ctx.fillText('Energía generada por 1 panel — '+RES.panel.brand+' '+RES.panel.wp+'W',pad.l+4,pad.t-8);
+
+    document.getElementById('chart-legend').innerHTML=`
+      <div class="cl"><div class="cldot" style="background:rgba(100,215,255,.9)"></div>Sobre el promedio mensual</div>
+      <div class="cl"><div class="cldot" style="background:rgba(100,180,255,.6)"></div>Bajo el promedio mensual</div>
+      <div class="cl" style="color:rgba(255,255,255,0.5);margin-left:auto">
+        Promedio: <b style="color:#fff">${avg.toFixed(0)} kWh/mes</b> &nbsp;·&nbsp;
+        Anual: <b style="color:#fff">${(genP.reduce((a,b)=>a+b,0)/1000).toFixed(2)} MWh/año</b> &nbsp;·&nbsp;
+        Área panel: <b style="color:#fff">${aP.toFixed(2)} m²</b>
+      </div>`;
+  }
+
+  // ─ TAB 2: vs Consumo ─
+  else{
+    const consumoRaw=document.getElementById('consumo-inp')?.value;
+    if(!consumoRaw||consumoRaw===''){
+      ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='14px -apple-system,sans-serif';ctx.textAlign='center';
+      ctx.fillText('Ingresa el consumo mensual de tu recibo CFE para ver este análisis',W/2,H/2-10);
+      ctx.font='11px -apple-system,sans-serif';ctx.fillStyle='rgba(255,255,255,0.3)';
+      ctx.fillText('(kWh/mes — lo encuentras en tu recibo de CFE)',W/2,H/2+12);
+      ctx.textAlign='left';
+      document.getElementById('chart-legend').innerHTML='<div class="cl" style="color:rgba(255,255,255,0.45)">Ingresa tu consumo mensual arriba para ver cuántos meses el sistema cubre tu demanda</div>';
+      return;
+    }
+    const consumo=parseFloat(consumoRaw)||85000;
+    const allVals=[...genM,consumo];
+    const mx=Math.max(...allVals)*1.15||1;
+    for(let i=0;i<=5;i++){
+      const y=pad.t+ch*(1-i/5),v=mx*i/5;
+      ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+      ctx.fillText((v/1000).toFixed(1)+'k',pad.l-6,y+3);
+    }
+    // Y label
+    ctx.save();ctx.translate(12,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='rgba(255,255,255,0.42)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('kWh / mes',0,0);ctx.restore();
+    ctx.textAlign='left';
+    const bw=cw/12*0.55;
+    genM.forEach((v,i)=>{
+      const x=pad.l+cw*(i+0.5)/12-bw/2,bh=Math.max(3,(v/mx)*ch);
+      const cubre=v>=consumo;
+      const g=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      if(cubre){g.addColorStop(0,'rgba(100,255,160,.9)');g.addColorStop(1,'rgba(0,160,80,.35)');}
+      else{g.addColorStop(0,'rgba(255,215,60,.92)');g.addColorStop(1,'rgba(200,100,0,.4)');}
+      ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,pad.t+ch-bh,bw,bh,4);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.78)';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='center';
+      ctx.fillText((v/1000).toFixed(1)+'k kWh',x+bw/2,pad.t+ch-bh-5);
+      ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='10px -apple-system,sans-serif';
+      ctx.fillText(MO[i],x+bw/2,H-8);
+    });
+    // Consumption line
+    const yC=pad.t+ch*(1-consumo/mx);
+    ctx.strokeStyle='rgba(255,80,80,0.9)';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,yC);ctx.lineTo(W-pad.r,yC);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,100,100,0.9)';ctx.font='bold 10px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText('Consumo '+( consumo/1000).toFixed(0)+'k kWh',W-pad.r-4,yC-5);
+    ctx.textAlign='left';
+    const cubiertos=genM.filter(v=>v>=consumo).length;
+    document.getElementById('chart-legend').innerHTML=`
+      <div class="cl"><div class="cldot" style="background:rgba(100,255,160,.9)"></div>Meses que cubren el consumo (${cubiertos}/12)</div>
+      <div class="cl"><div class="cldot" style="background:rgba(255,215,60,.9)"></div>Meses con déficit (${12-cubiertos}/12)</div>
+      <div class="cl"><div class="cldot" style="background:rgba(255,80,80,.9)"></div>Consumo mensual Streger: ${(consumo/1000).toFixed(0)}k kWh</div>`;
+  }
+}
+
+// ── DRAW DAILY ────────────────────────────────────
+function drawDaily(){
+  if(!RES) return;
+  const{lat,lon,altM,tilt,azP,tamb,panel}=RES,m=SM;
+  const cv=document.getElementById('dc');
+  const ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.offsetWidth||900,H=180;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:20,b:28,l:62,r:16};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+  // Build hourly data
+  const ghiV=[],poaV=[],genV=[];
+  for(let h=0;h<24;h++){
+    const G=scaledGHI(m,lat,lon,altM,h);
+    const pos=sunPos(lat,lon,DOYS[m],h+0.5);
+    const P=poa(G,pos.alt,pos.az,tilt,azP);
+    const{effReal}=cengel(panel,P,tamb);
+    ghiV.push(G); poaV.push(P); genV.push(P*effReal);
+  }
+
+  const mxV=Math.max(...poaV,10)*1.12;
+
+  // Find peak hour and value
+  const peakPOA=Math.max(...poaV);
+  const peakH=poaV.indexOf(peakPOA);
+  // Find sunrise/sunset (first/last hour with POA > 5)
+  const sunriseH=poaV.findIndex(v=>v>5);
+  const sunsetH=23-[...poaV].reverse().findIndex(v=>v>5);
+  const horasSol=sunsetH-sunriseH;
+
+  // Update peak label in card header
+  const lbl=document.getElementById('daily-peak-label');
+  if(lbl) lbl.textContent=`Pico: ${peakPOA.toFixed(0)} W/m² a las ${peakH}:00 · ${horasSol}h de sol útil`;
+
+  // Rotated Y axis label
+  ctx.save();
+  ctx.translate(12,pad.t+ch/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(255,255,255,0.42)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText('W/m²',0,0);
+  ctx.restore();
+
+  // Grid lines + Y axis with units
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch*(1-i/5);
+    const v=mxV*i/5;
+    ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(v.toFixed(0)+' W/m²',pad.l-5,y+3);
+  }
+  ctx.textAlign='left';
+
+  // Shade nighttime areas
+  if(sunriseH>0){
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    ctx.fillRect(pad.l,pad.t,cw*sunriseH/23,ch);
+  }
+  if(sunsetH<23){
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    ctx.fillRect(pad.l+cw*sunsetH/23,pad.t,cw*(23-sunsetH)/23,ch);
+  }
+
+  // Draw lines
+  function ln(data,col,fill){
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      const x=pad.l+cw*i/23, y=pad.t+ch*(1-v/mxV);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    if(fill){
+      ctx.lineTo(W-pad.r,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);
+      ctx.fillStyle=fill;ctx.fill();
+      ctx.beginPath();
+      data.forEach((v,i)=>{
+        const x=pad.l+cw*i/23,y=pad.t+ch*(1-v/mxV);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+    }
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  }
+
+  ln(ghiV,'rgba(255,200,60,.65)','rgba(255,200,60,.09)');
+  ln(poaV,'rgba(100,210,255,.95)','rgba(80,180,255,.10)');
+  ln(genV,'rgba(90,255,160,.95)',null);
+
+  // Peak marker on POA
+  const peakX=pad.l+cw*peakH/23;
+  const peakY=pad.t+ch*(1-peakPOA/mxV);
+  ctx.beginPath();ctx.arc(peakX,peakY,4,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.fill();
+  ctx.strokeStyle='rgba(100,210,255,0.9)';ctx.lineWidth=2;ctx.stroke();
+  // Peak label
+  ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText(peakPOA.toFixed(0)+' W/m²',peakX,peakY-9);
+
+  // Vertical dashed line at peak
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(peakX,peakY+6);ctx.lineTo(peakX,pad.t+ch);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // X axis hours
+  ctx.fillStyle='rgba(255,255,255,0.42)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  [0,2,4,6,8,10,12,14,16,18,20,22,23].forEach(h=>{
+    ctx.fillText(h+'h',pad.l+cw*h/23,H-8);
+  });
+  ctx.textAlign='left';
+}
+
+// ── DRAW CENGEL ───────────────────────────────────
+function drawCengel(panel,tamb){
+  const irrs=[200,400,600,800,1000];
+  const rows=irrs.map(P=>{
+    const{effReal,tc}=cengel(panel,P,tamb);
+    const loss=((panel.eff/100-effReal)*100);
+    return `<tr>
+      <td>${P}</td>
+      <td class="tc">${tc.toFixed(1)}°C</td>
+      <td class="ef">${(effReal*100).toFixed(2)}%</td>
+      <td class="ls">-${Math.abs(loss).toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cengel-body').innerHTML=`
+    <div class="formula">T<sub>c</sub> = T<sub>amb</sub> + G · (NOCT − 20) / 800</div>
+    <div class="formula" style="font-size:14px">η<sub>real</sub> = η<sub>STC</sub> + α<sub>T</sub> · (T<sub>c</sub> − 25)</div>
+    <div class="formula-note" style="margin-top:8px">
+      ${panel.brand} · η<sub>STC</sub> = ${panel.eff}% · α<sub>T</sub> = ${panel.tcoeff}%/°C · NOCT = ${panel.noct}°C · T<sub>amb</sub> = ${tamb}°C
+    </div>
+    <table class="ctable">
+      <thead><tr><th>G (W/m²)</th><th>T celda</th><th>Efic. real</th><th>Pérdida</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── DRAW SPECS ────────────────────────────────────
+function drawSpecs(panel,tamb){
+  const{effReal,tc}=cengel(panel,600,tamb);
+  const loss=((panel.eff/100-effReal)*100);
+  const area=panel.w&&panel.h?((panel.w/1000)*(panel.h/1000)).toFixed(2)+' m²':'—';
+  document.getElementById('spec-body').innerHTML=`
+    <div class="spec-name">${panel.model}</div>
+    <div class="spec-brand">${panel.brand}</div>
+    ${sr('Tecnología',panel.tech||'—')}
+    ${sr('Potencia pico STC',panel.wp+' Wp','g')}
+    ${sr('Eficiencia STC',panel.eff+'%','g')}
+    ${sr('Efic. real @600 W/m²',(effReal*100).toFixed(2)+'%','g')}
+    ${sr('Pérdida térmica @600 W/m²','-'+Math.abs(loss).toFixed(2)+'%','r')}
+    ${sr('Temp. de celda @600 W/m²',tc.toFixed(1)+'°C','w')}
+    ${sr('Coef. temperatura',panel.tcoeff+'%/°C')}
+    ${sr('NOCT',panel.noct+'°C')}
+    ${panel.bifacial!==undefined?sr('Bifacial',panel.bifacial?'Sí':'No'):''}
+    ${panel.w?sr('Área por panel',area):''}
+    ${panel.voc?sr('Voc / Vmp',panel.voc+'V / '+panel.vmp+'V'):''}
+    ${panel.isc?sr('Isc / Imp',panel.isc+'A / '+panel.imp+'A'):''}
+    ${panel.vida?sr('Garantía potencia',panel.vida+' años'):''}
+    ${panel.precio?sr('Precio referencia','$'+panel.precio.toLocaleString()+' MXN'):''}`;
+}
+function sr(k,v,c=''){return`<div class="srow"><span class="sk">${k}</span><span class="sv2 ${c}">${v}</span></div>`;}
+
+// ── TOOLTIP ───────────────────────────────────────
+function tip(e,t){const el=document.getElementById('tip');el.textContent=t;el.style.display='block';el.style.left=(e.clientX+14)+'px';el.style.top=(e.clientY-36)+'px';}
+function hideTip(){document.getElementById('tip').style.display='none';}
+
+// ── RESIZE ────────────────────────────────────────
+window.addEventListener('resize',()=>{if(RES){drawMonthly(RES.genM,RES.genP);drawDaily();}});
+window.addEventListener('load',init);
+
+
+function runQuincemin(){
+  if(!RES){ alert('Primero ejecuta la simulación principal'); return; }
+  const mesIdx = parseInt(document.getElementById('qm-mes').value);
+  const dia    = parseInt(document.getElementById('qm-dia').value)||1;
+  const ndias  = parseInt(document.getElementById('qm-ndias').value)||3;
+  drawQuincemin(mesIdx, dia, ndias);
+}
+
+function getQMData(mesIdx, dia, ndias){
+  // Generate 15-min interval data for ndias days starting at dia
+  const {lat,lon,altM,tilt,azP,tamb,nP} = RES;
+  const panel = RES.panel;
+  if(!panel.area_m2) panel.area_m2=(panel.w/1000)*(panel.h/1000);
+  const data = [];
+  const ghi_d = NASA ? NASA[mesIdx] : GHI_DATA[document.getElementById("preset").value||"consolapa"][mesIdx];
+  const doy   = DOYS[mesIdx];
+
+  for(let d=0; d<ndias; d++){
+    for(let slot=0; slot<96; slot++){  // 96 slots × 15min = 24h
+      const hour = slot * 0.25;        // decimal hour
+      // Scale factor for this month
+      let daySum=0;
+      for(let hh=0;hh<24;hh++){
+        const p2=sunPos(lat,lon,doy,hh+0.5);
+        daySum+=spaGHI(p2.alt,altM,doy);
+      }
+      const pos = sunPos(lat,lon,doy,hour+0.125); // midpoint of 15-min slot
+      const rawG= spaGHI(pos.alt,altM,doy);
+      const G   = daySum>0 ? rawG*(ghi_d*1000/daySum) : rawG;
+      const P   = poa(G,pos.alt,pos.az,tilt,azP);
+      const {effReal} = cengel(panel,P,tamb);
+      // Power in kW for the whole array
+      const kW  = P * panel.area_m2 * effReal * RES.nP / 1000;
+      data.push({
+        d, slot, hour,
+        label: `${String(dia+d).padStart(2,'0')}/${MO[mesIdx]} ${String(Math.floor(hour)).padStart(2,'0')}:${slot%4===0?'00':slot%4===1?'15':slot%4===2?'30':'45'}`,
+        kW: Math.max(0, kW),
+        POA: Math.round(P),
+      });
+    }
+  }
+  return data;
+}
+
+// Add area_m2 to panel object when run() is called — patch
+const _origRun = run;
+
+function drawQuincemin(mesIdx, dia, ndias){
+  const data = getQMData(mesIdx, dia, ndias);
+  const cv   = document.getElementById('qm-canvas');
+  const ctx  = cv.getContext('2d');
+  const dpr  = window.devicePixelRatio||1;
+  const W    = cv.offsetWidth||900, H=220;
+  cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:28,b:36,l:58,r:16};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const n=data.length;
+  const maxKW=Math.max(...data.map(d=>d.kW),1)*1.15;
+
+  // Grid
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch*(1-i/5);
+    const v=maxKW*i/5;
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(v.toFixed(1)+' kW',pad.l-5,y+3);
+  }
+  ctx.textAlign='left';
+
+  // Day separators + labels
+  for(let d=0;d<ndias;d++){
+    const x=pad.l+cw*d*96/n;
+    if(d>0){
+      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ch);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='center';
+    ctx.fillText(`${MO[mesIdx]} ${dia+d}`,x+cw/(ndias*2),pad.t-8);
+  }
+
+  // Fill area under curve
+  ctx.beginPath();
+  data.forEach((d,i)=>{
+    const x=pad.l+cw*i/n, y=pad.t+ch*(1-d.kW/maxKW);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(pad.l+cw,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+  grad.addColorStop(0,'rgba(90,210,255,0.35)');
+  grad.addColorStop(1,'rgba(90,210,255,0.03)');
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  data.forEach((d,i)=>{
+    const x=pad.l+cw*i/n, y=pad.t+ch*(1-d.kW/maxKW);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='rgba(90,210,255,0.95)';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+
+  // Peak dot
+  const peakKW=Math.max(...data.map(d=>d.kW));
+  const peakIdx=data.findIndex(d=>d.kW===peakKW);
+  const px=pad.l+cw*peakIdx/n, py=pad.t+ch*(1-peakKW/maxKW);
+  ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.fill();
+  ctx.strokeStyle='rgba(90,210,255,0.9)';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText(peakKW.toFixed(1)+' kW',px,py-9);
+
+  // X axis — show every 6 hours per day
+  ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='8.5px -apple-system,sans-serif';ctx.textAlign='center';
+  for(let d=0;d<ndias;d++){
+    [0,6,12,18].forEach(h=>{
+      const slotIdx=d*96+h*4;
+      if(slotIdx<n){
+        const x=pad.l+cw*slotIdx/n;
+        ctx.fillText(h+'h',x,H-10);
+      }
+    });
+  }
+  ctx.textAlign='left';
+
+  // Y label
+  ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Potencia (kW)',0,0);ctx.restore();
+
+  // Stats
+  const totalKWh = data.reduce((a,d)=>a+d.kW*0.25,0); // 15min = 0.25h
+  const hrsUtil  = data.filter(d=>d.kW>0.5).length*0.25/ndias;
+  const promKW   = data.reduce((a,d)=>a+d.kW,0)/n;
+  document.getElementById('qs-gen').innerHTML  = `${totalKWh.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.6)">kWh</span>`;
+  document.getElementById('qs-peak').innerHTML = `${peakKW.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.6)">kW</span>`;
+  document.getElementById('qs-hrs').innerHTML  = `${hrsUtil.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.6)">h</span>`;
+  document.getElementById('qs-prom').innerHTML = `${promKW.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.6)">kW</span>`;
+}
+
+// ── OPTIMIZER ─────────────────────────────────────────────────────────────────
+function optimizarPosicion(){
+  if(!RES){ alert('Primero ejecuta la simulación principal'); return; }
+  const mesIdx = parseInt(document.getElementById('qm-mes').value);
+  document.getElementById('opt-spin').style.display='inline-block';
+  document.getElementById('opt-result').style.display='none';
+
+  setTimeout(()=>{
+    const result = runOptimizer(mesIdx);
+    document.getElementById('opt-spin').style.display='none';
+    document.getElementById('opt-result').style.display='block';
+    showOptimizerResult(result, mesIdx);
+  },50);
+}
+
+function runOptimizer(mesIdx){
+  const {lat,lon,altM,tamb,nP,tilt:currentTilt,azP:currentAz} = RES;
+  const panel=RES.panel;
+  if(!panel.area_m2) panel.area_m2=(panel.w/1000)*(panel.h/1000);
+  const doy   = DOYS[mesIdx];
+  const ghi_d = NASA ? NASA[mesIdx] : GHI_DATA[document.getElementById("preset").value||"consolapa"][mesIdx];
+
+  // Pre-compute daily scale factor for this month
+  let daySum=0;
+  for(let hh=0;hh<24;hh++){
+    const p2=sunPos(lat,lon,doy,hh+0.5);
+    daySum+=spaGHI(p2.alt,altM,doy);
+  }
+  const scaleFactor = daySum>0 ? ghi_d*1000/daySum : 1;
+
+  // Evaluate all combinations
+  const tilts  = Array.from({length:13},(_,i)=>i*5);    // 0,5,10,...,60
+  const azimuts= Array.from({length:37},(_,i)=>90+i*5); // 90,95,...,270
+
+  let best={tilt:currentTilt,az:currentAz,energy:-1};
+  const heatmap=[];
+
+  tilts.forEach(t=>{
+    const row=[];
+    azimuts.forEach(a=>{
+      let dayEnergy=0;
+      for(let h=0;h<24;h++){
+        const pos=sunPos(lat,lon,doy,h+0.5);
+        const rawG=spaGHI(pos.alt,altM,doy);
+        const G=rawG*scaleFactor;
+        const P=poa(G,pos.alt,pos.az,t,a);
+        const {effReal}=cengel(panel,P,tamb);
+        dayEnergy+=P*panel.area_m2*effReal*nP/1000; // kWh (1h intervals)
+      }
+      row.push(Math.round(dayEnergy*10)/10);
+      if(dayEnergy>best.energy) best={tilt:t,az:a,energy:dayEnergy};
+    });
+    heatmap.push(row);
+  });
+
+  // Current config energy
+  let currentEnergy=0;
+  for(let h=0;h<24;h++){
+    const pos=sunPos(lat,lon,doy,h+0.5);
+    const G=spaGHI(pos.alt,altM,doy)*scaleFactor;
+    const P=poa(G,pos.alt,pos.az,currentTilt,currentAz);
+    const {effReal}=cengel(panel,P,tamb);
+    currentEnergy+=P*panel.area_m2*effReal*nP/1000;
+  }
+
+  return {best,currentEnergy,currentTilt,currentAz,heatmap,tilts,azimuts,mesIdx};
+}
+
+function showOptimizerResult(r, mesIdx){
+  const gain     = r.best.energy-r.currentEnergy;
+  const gainPct  = (gain/r.currentEnergy*100);
+  const anualGain= gain*DM[mesIdx];
+
+  const azDir = r.best.az<135?'E':r.best.az<225?'S':r.best.az<270?'SO':'O';
+
+  document.getElementById('opt-kpis').innerHTML=`
+    <div class="qstat">
+      <div class="qstat-v" style="color:#7dff9e">${r.best.tilt}°</div>
+      <div class="qstat-l">Inclinación óptima</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-v" style="color:#7dff9e">${r.best.az}° (${azDir})</div>
+      <div class="qstat-l">Azimut óptimo</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-v" style="color:#ffd060">${gainPct>=0?'+':''}${gainPct.toFixed(1)}%</div>
+      <div class="qstat-l">Ganancia vs config. actual</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-v" style="color:#ffd060">+${anualGain.toFixed(0)} kWh</div>
+      <div class="qstat-l">Ganancia mensual estimada</div>
+    </div>`;
+
+  document.getElementById('opt-note').textContent=
+    `Configuración actual: ${r.currentTilt}° incl. · ${r.currentAz}° az. → ${r.currentEnergy.toFixed(1)} kWh/día | `+
+    `Óptimo: ${r.best.tilt}° incl. · ${r.best.az}° az. → ${r.best.energy.toFixed(1)} kWh/día | `+
+    `Sitio: Lat ${RES.lat.toFixed(2)}° · Mes: ${MO[mesIdx]}`;
+
+  drawHeatmap(r);
+}
+
+function drawHeatmap(r){
+  const cv=document.getElementById('opt-canvas');
+  const ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.offsetWidth||900, H=180;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fillRect(0,0,W,H);
+
+  const pad={t:24,b:30,l:44,r:60};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const nT=r.tilts.length, nA=r.azimuts.length;
+  const cellW=cw/nA, cellH=ch/nT;
+
+  const allVals=r.heatmap.flat();
+  const minV=Math.min(...allVals), maxV=Math.max(...allVals);
+
+  function heatColor(norm){
+    const s=[
+      [0,  [5,12,40]],
+      [0.25,[0,60,140]],
+      [0.5, [0,140,100]],
+      [0.75,[220,160,0]],
+      [1.0, [255,60,0]]
+    ];
+    for(let i=1;i<s.length;i++){
+      if(norm<=s[i][0]){
+        const t=(norm-s[i-1][0])/(s[i][0]-s[i-1][0]);
+        const c=s[i-1][1].map((v,j)=>Math.round(v+t*(s[i][1][j]-v)));
+        return `rgb(${c[0]},${c[1]},${c[2]})`;
+      }
+    }
+    return 'rgb(255,40,0)';
+  }
+
+  r.heatmap.forEach((row,ti)=>{
+    row.forEach((val,ai)=>{
+      const norm=(val-minV)/(maxV-minV||1);
+      const x=pad.l+ai*cellW, y=pad.t+ti*cellH;
+      ctx.fillStyle=heatColor(norm);
+      ctx.fillRect(x,y,cellW+0.5,cellH+0.5);
+    });
+  });
+
+  // Mark current config
+  const curTIdx=r.tilts.indexOf(r.currentTilt>=0?Math.round(r.currentTilt/5)*5:0);
+  const curAIdx=r.azimuts.indexOf(r.currentAz>=90?Math.round((r.currentAz-90)/5)*5*1+0:0);
+  if(curTIdx>=0&&curAIdx>=0){
+    const cx2=pad.l+curAIdx*cellW+cellW/2, cy2=pad.t+curTIdx*cellH+cellH/2;
+    ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;
+    ctx.strokeRect(cx2-cellW/2,cy2-cellH/2,cellW,cellH);
+    ctx.fillStyle='white';ctx.font='bold 7px -apple-system,sans-serif';ctx.textAlign='center';
+    ctx.fillText('actual',cx2,cy2+3);
+  }
+
+  // Mark optimal
+  const optTIdx=r.tilts.indexOf(r.best.tilt);
+  const optAIdx=r.azimuts.indexOf(r.best.az);
+  if(optTIdx>=0&&optAIdx>=0){
+    const ox=pad.l+optAIdx*cellW+cellW/2, oy=pad.t+optTIdx*cellH+cellH/2;
+    ctx.strokeStyle='rgba(125,255,158,0.95)';ctx.lineWidth=2;
+    ctx.strokeRect(ox-cellW/2-1,oy-cellH/2-1,cellW+2,cellH+2);
+    ctx.fillStyle='#7dff9e';ctx.font='bold 7px -apple-system,sans-serif';ctx.textAlign='center';
+    ctx.fillText('óptimo',ox,oy+3);
+  }
+
+  // Y axis — tilts
+  ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='8px -apple-system,sans-serif';ctx.textAlign='right';
+  r.tilts.forEach((t,i)=>{
+    if(i%2===0) ctx.fillText(t+'°',pad.l-4,pad.t+i*cellH+cellH/2+3);
+  });
+
+  // X axis — azimuts
+  ctx.textAlign='center';
+  r.azimuts.forEach((a,i)=>{
+    if(i%4===0) ctx.fillText(a+'°',pad.l+i*cellW+cellW/2,H-12);
+  });
+
+  // Axis labels
+  ctx.save();ctx.translate(10,pad.t+ch/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='8.5px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Inclinación (°)',0,0);ctx.restore();
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='8.5px -apple-system,sans-serif';
+  ctx.fillText('Azimut (°)',pad.l+cw/2,H-1);
+
+  // Colorbar
+  const cbX=W-pad.r+8, cbH=ch;
+  const cbGrad=ctx.createLinearGradient(0,pad.t,0,pad.t+cbH);
+  cbGrad.addColorStop(0,'rgb(255,60,0)');
+  cbGrad.addColorStop(0.25,'rgb(220,160,0)');
+  cbGrad.addColorStop(0.5,'rgb(0,140,100)');
+  cbGrad.addColorStop(0.75,'rgb(0,60,140)');
+  cbGrad.addColorStop(1,'rgb(5,12,40)');
+  ctx.fillStyle=cbGrad;
+  ctx.fillRect(cbX,pad.t,10,cbH);
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.strokeRect(cbX,pad.t,10,cbH);
+  ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='8px -apple-system,sans-serif';ctx.textAlign='left';
+  ctx.fillText('Max',cbX+13,pad.t+6);
+  ctx.fillText('Min',cbX+13,pad.t+cbH);
+
+  // Title
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Mapa de energía diaria (kWh/día) — Inclinación vs Azimut · '+MO[r.mesIdx],pad.l+cw/2,pad.t-8);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// PERFIL DE DEMANDA
+// ══════════════════════════════════════════════════════════════════════════
+
+let DEMAND_VIEW = 'anual';
+let DEMAND_DATA = null; // 35040 slots (15min x 24h x 365d)
+
+function setDemandView(v){
+  DEMAND_VIEW=v;
+  ['anual','semana','dia'].forEach(x=>{
+    document.getElementById('dv-'+x)?.classList.toggle('sel',x===v);
+  });
+  if(DEMAND_DATA) drawDemandChart();
+}
+
+function getDemandMax(){
+  const sel=document.getElementById('dm-max').value;
+  if(sel==='custom') return parseFloat(document.getElementById('dm-custom-val').value)||40;
+  return parseFloat(sel);
+}
+
+// Perfil horario tipico de laboratorio farmaceutico (por hora 0-23)
+// Basado en curvas tipicas de industria farmaceutica con 3 turnos
+const PERFIL_HORA = [
+  0.45,0.42,0.40,0.40,0.42,0.50, // 00-05 turno nocturno bajo
+  0.65,0.80,0.90,0.95,0.98,1.00, // 06-11 inicio produccion, pico manana
+  0.98,0.97,0.95,0.93,0.90,0.85, // 12-17 tarde produccion
+  0.75,0.68,0.60,0.55,0.50,0.47  // 18-23 cierre de turno
+];
+
+function esFindeSemana(diaAnio){
+  // dia 1 = 1 enero 2026 (jueves)
+  const diaSemana = (diaAnio + 2) % 7; // 0=dom,1=lun,...,6=sab
+  return diaSemana === 0 || diaSemana === 6;
+}
+
+function esVerano(mes){ // mes 0-11
+  return mes >= 5 && mes <= 8; // Jun-Sep
+}
+
+function generarDemanda(){
+  const Dmax  = getDemandMax();
+  const FP    = parseFloat(document.getElementById('dm-fp').value)/100;
+  const Fpot  = parseFloat(document.getElementById('dm-pot').value)/100;
+  const Fver  = parseFloat(document.getElementById('dm-ver').value)/100;
+  const Fnover= parseFloat(document.getElementById('dm-nover').value)/100;
+  const Ffds  = parseFloat(document.getElementById('dm-fds').value)/100;
+
+  // Dias por mes 2026
+  const diasMes=[31,28,31,30,31,30,31,31,30,31,30,31];
+  const data=[]; // kW cada 15 min
+  let diaAnio=1;
+
+  for(let m=0;m<12;m++){
+    const fEstac = esVerano(m) ? Fver : Fnover;
+    for(let d=0;d<diasMes[m];d++){
+      const fFds = esFindeSemana(diaAnio) ? Ffds : 1.0;
+      for(let slot=0;slot<96;slot++){
+        const hora = Math.floor(slot/4);
+        // Variacion quinceminutal aleatoria +/-3% (ruido industrial realista)
+        const ruido = 1 + (Math.sin(diaAnio*7.3+slot*0.31)*0.02 + Math.cos(slot*1.7)*0.015);
+        const kW = Dmax * FP * PERFIL_HORA[hora] * fEstac * fFds * ruido;
+        data.push(Math.max(0, Math.round(kW*10)/10));
+      }
+      diaAnio++;
+    }
+  }
+  return data;
+}
+
+function updateDemandChart(){
+  // Show/hide custom input
+  const sel=document.getElementById('dm-max').value;
+  document.getElementById('dm-custom-wrap').style.display=sel==='custom'?'block':'none';
+  // Update pot display
+  const potVal = document.getElementById('dm-pot').value;
+  document.getElementById('dm-pot-v').textContent = '0.' + potVal;
+  DEMAND_DATA = generarDemanda();
+  drawDemandChart();
+  updateDemandStats();
+}
+
+function drawDemandChart(){
+  const cv=document.getElementById('dm-canvas');
+  if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.offsetWidth||900,H=200;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:24,b:32,l:58,r:16};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+  let data=DEMAND_DATA;
+  let labels=[];
+  let xStep=1;
+
+  if(DEMAND_VIEW==='semana'){
+    // Take first full week (7 days = 672 slots)
+    data=DEMAND_DATA.slice(0,672);
+    labels=['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
+    xStep=96;
+  } else if(DEMAND_VIEW==='dia'){
+    // Average typical weekday
+    const diasLab=Math.floor(DEMAND_DATA.length/96);
+    data=Array(96).fill(0);
+    let cnt=Array(96).fill(0);
+    for(let d=0;d<diasLab;d++){
+      if(!esFindeSemana(d+1)){
+        for(let s=0;s<96;s++){
+          data[s]+=DEMAND_DATA[d*96+s];
+          cnt[s]++;
+        }
+      }
+    }
+    data=data.map((v,i)=>cnt[i]>0?Math.round(v/cnt[i]*10)/10:0);
+    labels=['0h','3h','6h','9h','12h','15h','18h','21h','24h'];
+    xStep=12;
+  } else {
+    // Anual — downsample to one point per day
+    const nDias=365;
+    data=[];
+    for(let d=0;d<nDias;d++){
+      const sliceDia=DEMAND_DATA.slice(d*96,(d+1)*96);
+      data.push(Math.max(...sliceDia));
+    }
+    labels=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    xStep=Math.round(nDias/12);
+  }
+
+  const maxV=Math.max(...data)*1.15||1;
+  const Dmax=getDemandMax();
+
+  // Grid
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch*(1-i/5),v=maxV*i/5;
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(v.toFixed(0)+' kW',pad.l-5,y+3);
+  }
+  ctx.textAlign='left';
+
+  // Shade verano (Jun-Sep) on annual view
+  if(DEMAND_VIEW==='anual'){
+    const verStart=Math.round(365*5/12),verEnd=Math.round(365*9/12);
+    ctx.fillStyle='rgba(255,200,60,0.07)';
+    ctx.fillRect(pad.l+cw*verStart/365,pad.t,cw*(verEnd-verStart)/365,ch);
+    ctx.fillStyle='rgba(255,200,60,0.45)';ctx.font='8px -apple-system,sans-serif';ctx.textAlign='center';
+    ctx.fillText('VERANO',pad.l+cw*(verStart+verEnd)/2/365,pad.t+10);
+  }
+
+  // Demand max line
+  const yDmax=pad.t+ch*(1-Dmax/maxV);
+  ctx.strokeStyle='rgba(255,80,80,0.6)';ctx.lineWidth=1.2;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,yDmax);ctx.lineTo(W-pad.r,yDmax);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,100,100,0.8)';ctx.font='8px -apple-system,sans-serif';ctx.textAlign='right';
+  ctx.fillText('D.max '+Dmax+' kW',W-pad.r-4,yDmax-4);
+
+  // Fill + line
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=pad.l+cw*i/(data.length-1),y=pad.t+ch*(1-v/maxV);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(W-pad.r,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);
+  const gf=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+  gf.addColorStop(0,'rgba(255,160,60,0.4)');
+  gf.addColorStop(1,'rgba(255,160,60,0.04)');
+  ctx.fillStyle=gf;ctx.fill();
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=pad.l+cw*i/(data.length-1),y=pad.t+ch*(1-v/maxV);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='rgba(255,170,60,0.95)';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+
+  // X labels
+  ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  labels.forEach((l,i)=>ctx.fillText(l,pad.l+cw*i*xStep/(data.length-1),H-8));
+  ctx.textAlign='left';
+
+  // Y label
+  ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText('Demanda (kW)',0,0);ctx.restore();
+}
+
+function updateDemandStats(){
+  if(!DEMAND_DATA) return;
+  const Dmax=getDemandMax();
+  const Fpot=parseFloat(document.getElementById('dm-pot').value)/100;
+  const peak=Math.max(...DEMAND_DATA);
+  const totalKWh=DEMAND_DATA.reduce((a,b)=>a+b,0)*0.25/1000; // MWh
+  const factorCarga=(totalKWh*1000/(peak*8760)*100);
+  const kVA=peak/Fpot;
+
+  document.getElementById('dm-s1').innerHTML=`${peak.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.5)">kW</span>`;
+  document.getElementById('dm-s2').innerHTML=`${totalKWh.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.5)">MWh</span>`;
+  document.getElementById('dm-s3').innerHTML=`${factorCarga.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.5)">%</span>`;
+  document.getElementById('dm-s4').innerHTML=`${kVA.toFixed(1)} <span style="font-size:12px;color:rgba(255,255,255,0.5)">kVA</span>`;
+}
+
+// ── COMPARATIVA SOLAR vs DEMANDA ──────────────────────────────────────────
+function runSolarVsDemanda(){
+  if(!RES){ alert('Primero ejecuta la simulacion solar principal'); return; }
+  if(!DEMAND_DATA) updateDemandChart();
+
+  // Generate solar 15-min data for full year
+  const{lat,lon,altM,tilt,azP,tamb,panel,nP}=RES;
+  if(!panel.area_m2) panel.area_m2=(panel.w/1000)*(panel.h/1000);
+
+  const diasMes=[31,28,31,30,31,30,31,31,30,31,30,31];
+  const ghi_lista=Object.values(GHI_NASA);
+  const solarData=[];
+
+  let diaGlobal=0;
+  for(let m=0;m<12;m++){
+    const doy=DOYS[m];
+    const ghi_d=ghi_lista[m];
+    // Scale factor
+    let daySum=0;
+    for(let hh=0;hh<24;hh++){
+      const p2=sunPos(lat,lon,doy,hh+0.5);
+      daySum+=spaGHI(p2.alt,altM,doy);
+    }
+    const factor=daySum>0?ghi_d*1000/daySum:1;
+
+    for(let d=0;d<diasMes[m];d++){
+      for(let slot=0;slot<96;slot++){
+        const hour=slot*0.25;
+        const pos=sunPos(lat,lon,doy,hour+0.125);
+        const G=spaGHI(pos.alt,altM,doy)*factor;
+        const P=poa(G,pos.alt,pos.az,tilt,azP);
+        const{effReal}=cengel(panel,P,tamb);
+        const kW=P*panel.area_m2*effReal*nP/1000;
+        solarData.push(Math.max(0,Math.round(kW*10)/10));
+      }
+      diaGlobal++;
+    }
+  }
+
+  document.getElementById('svd-result').style.display='block';
+  drawSolarVsDemanda(solarData, DEMAND_DATA);
+}
+
+function drawSolarVsDemanda(solar, demand){
+  const cv=document.getElementById('svd-canvas');
+  if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.offsetWidth||900,H=200;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:24,b:32,l:58,r:16};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+  // Downsample to daily max for annual view
+  const nDias=Math.min(365,Math.floor(solar.length/96));
+  const solDay=[],demDay=[];
+  for(let d=0;d<nDias;d++){
+    solDay.push(Math.max(...solar.slice(d*96,(d+1)*96)));
+    demDay.push(Math.max(...demand.slice(d*96,(d+1)*96)));
+  }
+
+  const maxV=Math.max(...solDay,...demDay)*1.15||1;
+
+  // Grid
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch*(1-i/5),v=maxV*i/5;
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(v.toFixed(0)+' kW',pad.l-5,y+3);
+  }
+
+  // Shade where solar > demand (autosuficient)
+  for(let d=0;d<nDias;d++){
+    if(solDay[d]>=demDay[d]){
+      const x1=pad.l+cw*d/nDias;
+      const x2=pad.l+cw*(d+1)/nDias;
+      ctx.fillStyle='rgba(90,255,160,0.12)';
+      ctx.fillRect(x1,pad.t,x2-x1,ch);
+    }
+  }
+
+  function drawLine(data,col,fill){
+    ctx.beginPath();
+    data.forEach((v,i)=>{const x=pad.l+cw*i/(nDias-1),y=pad.t+ch*(1-v/maxV);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    if(fill){
+      ctx.lineTo(W-pad.r,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);
+      ctx.fillStyle=fill;ctx.fill();
+      ctx.beginPath();
+      data.forEach((v,i)=>{const x=pad.l+cw*i/(nDias-1),y=pad.t+ch*(1-v/maxV);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    }
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+  }
+
+  drawLine(demDay,'rgba(255,160,60,0.9)','rgba(255,160,60,0.08)');
+  drawLine(solDay,'rgba(90,210,255,0.9)','rgba(90,210,255,0.08)');
+
+  // X labels months
+  const labels=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const diasMes2=[31,28,31,30,31,30,31,31,30,31,30,31];
+  ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='9px -apple-system,sans-serif';ctx.textAlign='center';
+  let acc=0;
+  diasMes2.forEach((d,i)=>{ctx.fillText(labels[i],pad.l+cw*(acc+d/2)/nDias,H-8);acc+=d;});
+  ctx.textAlign='left';
+
+  // Legend
+  ctx.fillStyle='rgba(255,160,60,0.9)';ctx.font='bold 9px -apple-system,sans-serif';
+  ctx.fillText('Demanda planta (kW)',pad.l+6,pad.t+14);
+  ctx.fillStyle='rgba(90,210,255,0.9)';
+  ctx.fillText('Generacion solar (kW)',pad.l+6,pad.t+26);
+  ctx.fillStyle='rgba(90,255,160,0.7)';
+  ctx.fillText('Zona autosuficiente',pad.l+200,pad.t+14);
+
+  // Stats
+  let autoDias=0,defDias=0,totalSolKWh=0,totalDemKWh=0;
+  for(let d=0;d<nDias;d++){
+    if(solDay[d]>=demDay[d]) autoDias++;
+    else defDias++;
+  }
+  totalSolKWh=solar.reduce((a,b)=>a+b,0)*0.25;
+  totalDemKWh=demand.reduce((a,b)=>a+b,0)*0.25;
+  const cobertura=Math.min(100,(totalSolKWh/totalDemKWh*100));
+  const ahorro=Math.min(totalSolKWh,totalDemKWh);
+
+  document.getElementById('svd-stats').innerHTML=`
+    <div class="qstat"><div class="qstat-v" style="color:#7dff9e">${autoDias}</div><div class="qstat-l">Dias autosuficientes</div></div>
+    <div class="qstat"><div class="qstat-v" style="color:#ff9070">${defDias}</div><div class="qstat-l">Dias con deficit</div></div>
+    <div class="qstat"><div class="qstat-v" style="color:var(--cyan,#60d9ff)">${cobertura.toFixed(1)}%</div><div class="qstat-l">Cobertura anual</div></div>
+    <div class="qstat"><div class="qstat-v" style="color:#ffd060">${(ahorro/1000).toFixed(1)} MWh</div><div class="qstat-l">Energia ahorrada / año</div></div>`;
+}
+
+// Auto-init demand on page load
+window.addEventListener('load', ()=>{ setTimeout(updateDemandChart, 500); });
+
+// ==========================================
+// LÓGICA DE PESTAÑAS (MODO CRÍTICO / AHORRO)
+// ==========================================
+let calcMode = 'ahorro';
+let savedNpan = 120;
+
+// Datos reales de los tres sistemas críticos de la planta
+// HVAC se calcula dinámicamente según selección del usuario
+const CRIT_SYSTEMS = {
+  hvac:  { kwEff: 46.35, kwDailyTotal: 1112.4 }, // se sobreescribe en recalcHVAC()
+  agua:  { kwEff: 3.4,   kwDailyTotal: 81.6   }, // Bomba PW
+  frio:  { kwEff: 4.0,   kwDailyTotal: 96.0   }  // 2× Cámaras 2-8°C
+};
+
+// Recalcula potencia del HVAC según chiller seleccionado y número de AHUs
+function recalcHVAC() {
+  const chillerKW = parseFloat(document.getElementById('hvac-chiller-tr').value) || 0;
+  const nAHU      = parseInt(document.getElementById('hvac-ahu-n').value) || 0;
+  const ahuKWnom  = nAHU * 5.5;
+
+  const chillerEff = chillerKW * 0.70;
+  const ahuEff     = ahuKWnom  * 0.90;
+  const totalEff   = chillerEff + ahuEff;
+  const totalDaily = totalEff * 24; // kWh/día · operación continua
+
+  // Actualizar CRIT_SYSTEMS con valores reales
+  CRIT_SYSTEMS.hvac.kwEff       = totalEff;
+  CRIT_SYSTEMS.hvac.kwDailyTotal = totalDaily;
+
+  // Actualizar displays dentro de la tarjeta
+  document.getElementById('hvac-chiller-disp').innerHTML =
+    `F.C. 0.70 → <strong style="color:#5ad2ff;">${chillerEff.toFixed(1)} kW</strong> efectivos`;
+  document.getElementById('hvac-ahu-disp').innerHTML =
+    `F.C. 0.90 → <strong style="color:#5ad2ff;">${ahuEff.toFixed(2)} kW</strong> efectivos`;
+  document.getElementById('hvac-eff-total').textContent  = totalEff.toFixed(2) + ' kW';
+  document.getElementById('hvac-daily-total').textContent =
+    totalDaily >= 1000
+      ? (totalDaily / 1000).toFixed(2) + ' MWh'
+      : Math.round(totalDaily) + ' kWh';
+
+  updateCritical();
+}
+// Estado de activación (todos ON por defecto)
+let critActive = { hvac: true, agua: true, frio: true };
+
+function toggleSystem(id) {
+  critActive[id] = !critActive[id];
+  const card = document.getElementById('crit-' + id);
+  const tog  = document.getElementById('tog-' + id);
+  const COLS = {
+    hvac: ['rgba(90,210,255,0.07)','rgba(90,210,255,0.3)','rgba(90,210,255,0.18)','rgba(90,210,255,0.55)','#5ad2ff'],
+    agua: ['rgba(125,255,158,0.07)','rgba(125,255,158,0.3)','rgba(125,255,158,0.18)','rgba(125,255,158,0.55)','#7dff9e'],
+    frio: ['rgba(255,208,96,0.07)','rgba(255,208,96,0.3)','rgba(255,208,96,0.18)','rgba(255,208,96,0.55)','#ffd060']
+  };
+  if (critActive[id]) {
+    const c = COLS[id];
+    card.style.background  = c[0];
+    card.style.borderColor = c[1];
+    card.style.opacity     = '1';
+    tog.textContent        = 'ON';
+    tog.style.background   = c[2];
+    tog.style.borderColor  = c[3];
+    tog.style.color        = c[4];
+  } else {
+    card.style.background  = 'rgba(0,0,0,0.10)';
+    card.style.borderColor = 'rgba(255,255,255,0.10)';
+    card.style.opacity     = '0.40';
+    tog.textContent        = 'OFF';
+    tog.style.background   = 'rgba(255,255,255,0.05)';
+    tog.style.borderColor  = 'rgba(255,255,255,0.15)';
+    tog.style.color        = 'rgba(255,255,255,0.30)';
+  }
+  updateCritical();
+}
+
+function setMode(m) {
+  calcMode = m;
+  const tA     = document.getElementById('tab-ahorro');
+  const tC     = document.getElementById('tab-critico');
+  const vc     = document.getElementById('view-critico');
+  const fgNpan = document.getElementById('fg-npan');
+  const npan   = document.getElementById('npan');
+
+  if (m === 'ahorro') {
+    tA.classList.add('sel');    tC.classList.remove('sel');
+    tC.style.color = '#ff9070'; tC.style.borderColor = 'rgba(255,144,112,0.3)';
+    tA.style.color = '';        tA.style.borderColor = '';
+    vc.style.display     = 'none';
+    fgNpan.style.display = 'block';
+    if (savedNpan) npan.value = savedNpan;
+  } else {
+    tA.classList.remove('sel'); tC.classList.add('sel');
+    tC.style.color = '#fff';    tC.style.borderColor = '#ff9070';
+    tA.style.color = 'rgba(255,255,255,0.55)';
+    tA.style.borderColor = 'rgba(255,255,255,0.2)';
+    savedNpan = npan.value;
+    vc.style.display     = 'block';
+    fgNpan.style.display = 'none';
+    updateCritical();
+  }
+}
+
+function updateCritical() {
+  if (calcMode !== 'critico') return;
+
+  const hrs = parseFloat(document.getElementById('eq-horas').value) || 4;
+
+  // Suma potencia efectiva de sistemas activos
+  let potKW = 0;
+  Object.keys(CRIT_SYSTEMS).forEach(k => {
+    if (critActive[k]) potKW += CRIT_SYSTEMS[k].kwEff;
+  });
+
+  // Inversor: potencia efectiva × 1.25 margen, redondeado a tallas estándar
+  let invKW = potKW * 1.25;
+  if      (potKW === 0) invKW = 0;
+  else if (invKW <=  30) invKW = 30;
+  else if (invKW <=  50) invKW = 50;
+  else if (invKW <=  75) invKW = 75;
+  else if (invKW <= 100) invKW = 100;
+  else invKW = Math.ceil(invKW / 25) * 25;
+
+  // Baterías: energía de autonomía + pérdidas de conversión/temperatura
+  const batKWh = (potKW * hrs) / 0.90 * 1.10;
+
+  // Paneles: sostener la carga 10 h solares + recargar baterías
+  let wp = 620;
+  if (typeof PANELS !== 'undefined' && typeof SEL !== 'undefined' && PANELS[SEL]) {
+    wp = PANELS[SEL].wp;
+  }
+  const prodPanel = (wp / 1000) * 4.0; // kWh/panel/día · 4 HSP promedio
+  const energiaDia = (potKW * 10) + batKWh;
+  const pan = potKW > 0 ? Math.ceil(energiaDia / prodPanel) : 0;
+
+  document.getElementById('out-inv').innerText = invKW.toFixed(0) + ' kW';
+  document.getElementById('out-bat').innerText = Math.ceil(batKWh) + ' kWh';
+  document.getElementById('out-pan').innerText = pan;
+  document.getElementById('npan').value = pan;
+}
+
+// Re-calcular si se cambia el panel seleccionado estando en modo crítico
+window.addEventListener('load', () => {
+  recalcHVAC(); // inicializa displays del HVAC con valores por defecto
+  const grid = document.getElementById('panel-grid');
+  if (grid) grid.addEventListener('click', () => setTimeout(updateCritical, 100));
+});
+
+// ══════════════════════════════════════════════════════════════
+// ANÁLISIS DE AHORRO REAL — TARIFA GDMTO
+// Fuente: Recibo CFE GDMTO Streger S.A. mayo 2026
+//
+// DESGLOSE DEL RECIBO (9,520 kWh, $29,591 MXN con IVA):
+//   Energía pura:              $10,669  → $1.12/kWh  ← solar SÍ elimina
+//   Distribución:               $4,869  ← solar NO elimina (cargo de red)
+//   Transmisión:                $1,715  ← solar NO elimina (cargo de red)
+//   Capacidad (demanda 99kW):   $6,944  ← solar NO elimina (cargo fijo contrato)
+//   CENACE + SCnMEM:              $138  ← solar NO elimina
+//   Cargo fijo + ajustes:         $714  ← solar NO elimina
+//   Subtotal sin IVA:          $25,049
+//   IVA 16%:                    $4,082
+//   Total:                     $29,591 → $3.11/kWh
+//
+// CONCLUSIÓN: solar solo desplaza $1.12/kWh de los $3.11/kWh totales
+// Ahorro máximo teórico (100% cobertura energética) = 36% de la factura
+// ══════════════════════════════════════════════════════════════
+
+// Precios reales extraídos del recibo CFE mayo 2026
+const PRECIO_KWH_ENERGIA   = 1.12;   // MXN/kWh — cargo de energía pura (lo que solar desplaza)
+const PRECIO_KWH_TOTAL     = 3.11;   // MXN/kWh — precio total real con IVA (referencia)
+const CARGO_ENERGIA_MES    = 10669;  // MXN — cargo energía mayo 2026 (sin IVA proporcional)
+const CONSUMO_CFE_REAL     = 9520;   // kWh — consumo real mayo 2026 (119 medido × mult.80)
+const FACTURA_TOTAL_MES    = 29591;  // MXN — factura total con IVA mayo 2026
+
+// Factor de aprovechamiento por modo
+const MODO_FACTOR = {
+  autosuficiencia: 1.00,  // toda la generación disponible desplaza red
+  peakshaving:     0.85,  // solo franja pico 8:00–20:00 h
+  ups:             0.78   // pérdidas ciclo batería + inversor + cableado
+};
+
+// Notas explicativas por modo
+const MODO_NOTAS = {
+  autosuficiencia:
+    'Modo Autosuficiencia: toda la generación solar disponible reemplaza energía de red. ' +
+    'Ahorro = kWh cubiertos × $1.12/kWh (solo cargo de energía, los cargos de distribución, ' +
+    'transmisión y capacidad siguen pagándose porque dependen del contrato, no del consumo).',
+  peakshaving:
+    'Modo Peak Shaving: el sistema solar opera en franja de mayor demanda (8:00–20:00 h). ' +
+    'Factor 85% — adicionalmente puede reducir el cargo de demanda contratada si se baja de 99 kW, ' +
+    'pero eso requiere renegociación de contrato con CFE y medición de demanda máxima sostenida.',
+  ups:
+    'Modo UPS / Respaldo Crítico (GMP): la generación carga baterías para 2–4 h de autonomía. ' +
+    'Factor efectivo 78% por pérdidas en ciclo batería (~8%) + inversor (~7%) + cableado (~7%). ' +
+    'El ahorro en energía aplica igual; el valor adicional está en evitar paros de producción.'
+};
+
+function runAhorroROI() {
+  const consumoMes = parseFloat(document.getElementById('roi-consumo').value);
+  if (!consumoMes || consumoMes <= 0) return;
+
+  if (!RES || !RES.genM) {
+    alert('Primero ejecuta la simulación solar (botón "Calcular Simulación").');
+    return;
+  }
+
+  const modo   = document.getElementById('roi-modo').value;
+  const factor = MODO_FACTOR[modo];
+  // genM: mismos valores exactos que la gráfica "Generación Mensual → Arreglo"
+  const genM   = RES.genM;
+
+  // ── Precio de energía real del recibo (proporcional al consumo ingresado) ──
+  // Si el usuario ingresa un consumo diferente al del recibo, mantenemos el
+  // mismo precio por kWh de energía ($1.12/kWh) ya que la tarifa GDMTO no
+  // cambia el precio unitario de energía por volumen (es un cargo variable lineal).
+  const precioEnergia = PRECIO_KWH_ENERGIA;  // $1.12/kWh — lo que solar desplaza
+
+  // Factura real del usuario: si ingresó el consumo del recibo (9520), usamos
+  // el total real ($29,591). Para otros consumos, estimamos proporcionalmente
+  // manteniendo los cargos fijos y variando solo el cargo de energía.
+  // Cargos fijos del recibo (no cambian con consumo): $29,591 - $10,669 = $18,922
+  const CARGOS_FIJOS_MES = FACTURA_TOTAL_MES - CARGO_ENERGIA_MES; // $18,922
+
+  const ahorroMes        = [];
+  const gastoRedMes      = [];  // cargo energía restante a CFE
+  const facturaResMes    = [];  // factura total estimada (cargos fijos + energía restante)
+  const coberturaMes     = [];
+  const kwhSolarMes      = [];
+
+  MO.forEach((_, i) => {
+    const genDisp   = genM[i] * factor;
+    const cubierto  = Math.min(genDisp, consumoMes);   // kWh que evitan pago a CFE
+    const restante  = Math.max(0, consumoMes - cubierto); // kWh que aún vienen de CFE
+
+    // Ahorro REAL: solo el cargo de energía desplazado ($1.12/kWh)
+    const ahorro    = cubierto * precioEnergia;
+    // Lo que aún se paga a CFE: cargos fijos (siempre) + energía restante
+    const gastoRed  = restante * precioEnergia;
+    const facturaEstimada = CARGOS_FIJOS_MES + gastoRed;
+
+    ahorroMes.push(ahorro);
+    gastoRedMes.push(gastoRed);
+    facturaResMes.push(facturaEstimada);
+    coberturaMes.push((cubierto / consumoMes) * 100);
+    kwhSolarMes.push(cubierto);
+  });
+
+  const ahorroAnual       = ahorroMes.reduce((a, b) => a + b, 0);
+  const coberturaProm     = coberturaMes.reduce((a, b) => a + b, 0) / 12;
+  // Factura mensual estimada sin solar (cargos fijos + todo el consumo a $1.12)
+  const facturaSinSolar   = CARGOS_FIJOS_MES + consumoMes * precioEnergia;
+  const pctAhorroFactura  = (ahorroMes.reduce((a,b)=>a+b,0) / 12) / facturaSinSolar * 100;
+
+  // KPIs
+  document.getElementById('roi-k1').textContent = '$' + (ahorroAnual / 1000).toFixed(1) + 'k MXN';
+  document.getElementById('roi-k2').textContent = '$' + (ahorroAnual / 12 / 1000).toFixed(2) + 'k MXN';
+  document.getElementById('roi-k3').textContent = coberturaProm.toFixed(1) + '%';
+  document.getElementById('roi-k4').textContent = pctAhorroFactura.toFixed(1) + '%';
+  document.getElementById('roi-kpis').style.display = 'block';
+
+  // Nota del modo
+  document.getElementById('roi-modo-nota').textContent = MODO_NOTAS[modo];
+  document.getElementById('roi-modo-nota').style.display = 'block';
+
+  ['roi-chart1-wrap', 'roi-chart2-wrap'].forEach(id => {
+    document.getElementById(id).style.display = 'block';
+  });
+
+  setTimeout(() => {
+    drawAhorroBar(ahorroMes, gastoRedMes, facturaResMes, consumoMes, facturaSinSolar);
+    drawGenVsConsumo(kwhSolarMes, consumoMes, genM, factor);
+  }, 30);
+}
+
+// ── GRÁFICA 1: Desglose real de factura mensual ─────────────────────────────
+// Barra = factura total estimada cada mes
+// Gris oscuro (base): cargos fijos de red (distribución, transmisión, capacidad)
+//   — estos NO se reducen con solar
+// Verde (encima): ahorro solar (cargo de energía desplazado)
+// Naranja (encima del verde): cargo de energía restante aún a CFE
+// Línea roja: factura sin solar de referencia
+function drawAhorroBar(ahorroMes, gastoRedMes, facturaResMes, consumoMes, facturaSinSolar) {
+  const cv  = document.getElementById('roi-canvas1');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W   = cv.offsetWidth || 900, H = 230;
+  cv.width  = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = {t:32, b:32, l:78, r:20};
+  const cw  = W - pad.l - pad.r;
+  const ch  = H - pad.t - pad.b;
+
+  const CARGOS_FIJOS = FACTURA_TOTAL_MES - CARGO_ENERGIA_MES; // $18,922 MXN
+
+  const maxVal = Math.max(facturaSinSolar, ...facturaResMes) * 1.18 || 1;
+  const bw = cw / 12 * 0.60;
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch * (1 - i / 4), v = maxVal * i / 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('$' + (v / 1000).toFixed(0) + 'k', pad.l - 6, y + 3);
+  }
+  ctx.save(); ctx.translate(14, pad.t + ch / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('MXN / mes', 0, 0); ctx.restore();
+
+  MO.forEach((m, i) => {
+    const x    = pad.l + cw * (i + 0.5) / 12 - bw / 2;
+    const yBot = pad.t + ch;
+
+    // Capa 1 (fondo, gris): cargos fijos de red — no reducibles con solar
+    const bhFijo = Math.max(2, (CARGOS_FIJOS / maxVal) * ch);
+    ctx.fillStyle = 'rgba(120,140,180,0.35)';
+    ctx.beginPath(); ctx.roundRect(x, yBot - bhFijo, bw, bhFijo, [0, 0, 4, 4]); ctx.fill();
+
+    // Capa 2 (verde, encima de fijo): ahorro solar
+    const bhAh = Math.max(0, (ahorroMes[i] / maxVal) * ch);
+    if (bhAh > 0) {
+      const gAh = ctx.createLinearGradient(0, yBot - bhFijo - bhAh, 0, yBot - bhFijo);
+      gAh.addColorStop(0, 'rgba(125,255,158,0.95)'); gAh.addColorStop(1, 'rgba(0,160,80,0.5)');
+      ctx.fillStyle = gAh;
+      ctx.beginPath(); ctx.roundRect(x, yBot - bhFijo - bhAh, bw, bhAh, 0); ctx.fill();
+    }
+
+    // Capa 3 (naranja, encima del verde): energía restante CFE
+    const bhRed = Math.max(0, (gastoRedMes[i] / maxVal) * ch);
+    if (bhRed > 0) {
+      const gRed = ctx.createLinearGradient(0, yBot - bhFijo - bhAh - bhRed, 0, yBot - bhFijo - bhAh);
+      gRed.addColorStop(0, 'rgba(255,150,60,0.9)'); gRed.addColorStop(1, 'rgba(200,80,0,0.45)');
+      ctx.fillStyle = gRed;
+      ctx.beginPath(); ctx.roundRect(x, yBot - bhFijo - bhAh - bhRed, bw, bhRed, [4, 4, 0, 0]); ctx.fill();
+    }
+
+    // Total factura encima
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = '8px -apple-system,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('$' + (facturaResMes[i] / 1000).toFixed(1) + 'k', x + bw / 2, yBot - bhFijo - bhAh - bhRed - 5);
+
+    // Etiqueta mes
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '10px -apple-system,sans-serif';
+    ctx.fillText(m, x + bw / 2, H - 8);
+  });
+
+  // Línea referencia: factura sin solar
+  const yRef = pad.t + ch * (1 - facturaSinSolar / maxVal);
+  ctx.strokeStyle = 'rgba(255,80,80,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, yRef); ctx.lineTo(W - pad.r, yRef); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,100,100,0.85)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('Sin solar: $' + (facturaSinSolar / 1000).toFixed(1) + 'k/mes', W - pad.r - 4, yRef - 4);
+  ctx.textAlign = 'left';
+
+  // Línea cargos fijos
+  const yFijo = pad.t + ch * (1 - CARGOS_FIJOS / maxVal);
+  ctx.strokeStyle = 'rgba(120,140,180,0.55)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(pad.l, yFijo); ctx.lineTo(W - pad.r, yFijo); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(140,160,200,0.75)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Cargos fijos de red: $' + (CARGOS_FIJOS / 1000).toFixed(1) + 'k', pad.l + 4, yFijo - 4);
+
+  const ahorroAnual = ahorroMes.reduce((a, b) => a + b, 0);
+  document.getElementById('roi-leg1').innerHTML = `
+    <div class="cl"><div class="cldot" style="background:rgba(120,140,180,.5)"></div>Cargos fijos de red (no eliminables con solar)</div>
+    <div class="cl"><div class="cldot" style="background:rgba(125,255,158,.9)"></div>Ahorro solar — cargo energía desplazado ($1.12/kWh)</div>
+    <div class="cl"><div class="cldot" style="background:rgba(255,150,60,.9)"></div>Energía restante CFE</div>
+    <div class="cl" style="margin-left:auto;color:rgba(255,255,255,0.5)">Ahorro anual real: <b style="color:#7dff9e">$${(ahorroAnual/1000).toFixed(1)}k MXN</b> · Solo cargo energía $1.12/kWh</div>`;
+}
+
+// ── GRÁFICA 2: Generación solar vs Consumo mensual — kWh ───────────────────
+function drawGenVsConsumo(kwhSolarMes, consumoMes, genM, factor) {
+  const cv  = document.getElementById('roi-canvas2');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W   = cv.offsetWidth || 900, H = 220;
+  cv.width  = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = {t:32, b:32, l:78, r:20};
+  const cw  = W - pad.l - pad.r;
+  const ch  = H - pad.t - pad.b;
+
+  const maxVal = Math.max(consumoMes, ...genM) * 1.20 || 1;
+  const bw = cw / 12 * 0.55;
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch * (1 - i / 4), v = maxVal * i / 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText((v / 1000).toFixed(1) + 'k', pad.l - 6, y + 3);
+  }
+  ctx.save(); ctx.translate(14, pad.t + ch / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.font = '9px -apple-system,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('kWh / mes', 0, 0); ctx.restore();
+
+  MO.forEach((m, i) => {
+    const x       = pad.l + cw * (i + 0.5) / 12 - bw / 2;
+    const genDisp = genM[i] * factor;
+    const cubre   = genDisp >= consumoMes;
+
+    // Fondo: generación bruta del arreglo (igual que gráfica Arreglo principal)
+    const bhBruta = Math.max(2, (genM[i] / maxVal) * ch);
+    ctx.fillStyle = 'rgba(90,210,255,0.15)';
+    ctx.beginPath(); ctx.roundRect(x - 2, pad.t + ch - bhBruta, bw + 4, bhBruta, 4); ctx.fill();
+
+    // Barra: generación aprovechable con factor del modo
+    const bhAprov = Math.max(2, (genDisp / maxVal) * ch);
+    const g = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+    if (cubre) { g.addColorStop(0, 'rgba(90,255,160,.95)'); g.addColorStop(1, 'rgba(0,160,80,.4)'); }
+    else       { g.addColorStop(0, 'rgba(255,215,60,.92)'); g.addColorStop(1, 'rgba(200,100,0,.4)'); }
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.roundRect(x, pad.t + ch - bhAprov, bw, bhAprov, 4); ctx.fill();
+
+    // Valor encima
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = 'bold 8px -apple-system,sans-serif'; ctx.textAlign = 'center';
+    const label = genDisp >= 1000 ? (genDisp / 1000).toFixed(1) + 'k' : Math.round(genDisp).toString();
+    ctx.fillText(label, x + bw / 2, pad.t + ch - bhAprov - 5);
+
+    // Mes
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '10px -apple-system,sans-serif';
+    ctx.fillText(m, x + bw / 2, H - 8);
+  });
+
+  // Línea consumo real (recibo CFE)
+  const yC = pad.t + ch * (1 - consumoMes / maxVal);
+  ctx.strokeStyle = 'rgba(255,80,80,0.85)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, yC); ctx.lineTo(W - pad.r, yC); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,100,100,0.9)'; ctx.font = 'bold 10px -apple-system,sans-serif'; ctx.textAlign = 'right';
+  const labelC = consumoMes >= 1000 ? (consumoMes/1000).toFixed(1)+'k' : consumoMes;
+  ctx.fillText('Consumo CFE: ' + labelC + ' kWh/mes', W - pad.r - 4, yC - 5);
+  ctx.textAlign = 'left';
+
+  const mesesCubiertos = genM.filter((v) => v * factor >= consumoMes).length;
+  const genAnual = genM.reduce((a, b) => a + b, 0);
+  document.getElementById('roi-leg2').innerHTML = `
+    <div class="cl"><div class="cldot" style="background:rgba(90,210,255,.3)"></div>Generación bruta arreglo (= gráfica principal)</div>
+    <div class="cl"><div class="cldot" style="background:rgba(90,255,160,.9)"></div>Cubre consumo energético (${mesesCubiertos}/12 meses)</div>
+    <div class="cl"><div class="cldot" style="background:rgba(255,215,60,.9)"></div>Déficit solar ese mes</div>
+    <div class="cl"><div class="cldot" style="background:rgba(255,80,80,.9)"></div>Consumo Streger (recibo CFE mayo 2026)</div>
+    <div class="cl" style="margin-left:auto;color:rgba(255,255,255,0.45)">Gen. anual arreglo: <b style="color:#5ad2ff">${(genAnual/1000).toFixed(1)} MWh</b></div>`;
+}
+// ── FIN AHORRO & ROI ────────────────────────────────────────────────────────
+
+</script>
+</body>
+</html>
