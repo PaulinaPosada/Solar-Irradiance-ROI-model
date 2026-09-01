@@ -2,8 +2,8 @@
 
 Herramienta interactiva, en un solo archivo HTML, para modelar la generación de un sistema
 solar fotovoltaico y su impacto económico real en una planta industrial (caso de uso:
-farmacéutica con operación crítica 24/7). Todo el cálculo —posición solar, irradiancia,
-generación, eficiencia térmica, respaldo crítico y ahorro— corre en el navegador, sin backend.
+farmacéutica con operación crítica 24/7). Todo el cálculo: posición solar, irradiancia,
+generación, eficiencia térmica, respaldo crítico y ahorro, corre en el navegador, sin backend.
 
 ![Panel principal — configuración del sistema](screenshots/panel-principal.jpeg)
 
